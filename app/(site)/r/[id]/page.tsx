@@ -46,7 +46,7 @@ export default function RespondentEntryPage({ params }: { params: { id: string }
             난?
           </text>
         </svg>
-        <span className="font-display font-bold">너에게 난?</span>
+        <span className="font-display font-bold">나를 알려줘</span>
       </div>
 
       <h2 className="font-display text-2xl mb-1.5">{questionnaire.creatorName}가 너를 저격했어</h2>

@@ -10,7 +10,7 @@ export default function IntroPage() {
             <rect x="118" y="14" width="86" height="24" fill="#F0C24E" opacity={0.9} transform="rotate(-3 161 26)" />
             <circle cx="54" cy="56" r="7" fill="none" stroke="#3E3226" strokeWidth={3} />
             <text x="160" y="108" textAnchor="middle" fontFamily="var(--font-gaegu)" fontWeight={700} fontSize={42} fill="#3E3226">
-              너에게 난?
+              나를 알려줘
             </text>
             <text x="160" y="148" textAnchor="middle" fontFamily="var(--font-noto)" fontWeight={700} fontSize={13} letterSpacing={3} fill="#B23A2E">
               I WANNA KNOW ME

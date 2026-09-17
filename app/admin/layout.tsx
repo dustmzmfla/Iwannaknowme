@@ -9,7 +9,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
     <div className="min-h-screen w-full bg-paper flex flex-col">
       <header className="bg-ink text-paper-card px-6 py-4 flex items-center justify-between">
         <Link href="/admin" className="font-display text-lg">
-          너에게 난? 관리자
+          나를 알려줘 관리자
         </Link>
         <span className="text-xs text-paper-card/70">데모 모드 · 실제 배포 전 서버 인증 필수</span>
       </header>

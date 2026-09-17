@@ -16,7 +16,7 @@ const noto = Noto_Sans_KR({
 });
 
 export const metadata: Metadata = {
-  title: "너에게 난? — I wanna know me",
+  title: "나를 알려줘 — I wanna know me",
 };
 
 // 루트 레이아웃은 폰트/전역 스타일만 담당합니다.
