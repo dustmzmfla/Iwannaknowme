@@ -13,12 +13,6 @@ import { createClient } from "@/lib/supabase/client";
 
 const CONSENT_COOKIE = "iwkm_pending_consent";
 
-// 카카오 디벨로퍼스 키 + Supabase Kakao Provider 연동이 아직 안 끝났으면 true로 둡니다.
-// true일 때는 버튼을 눌러도 실제 카카오 로그인 창 대신, Supabase 익명(테스트) 로그인으로
-// 바로 다음 화면(/build)으로 넘어갑니다 — 화면 흐름을 미리 테스트할 수 있도록 하기 위함입니다.
-// 카카오 연동이 끝나면 이 값을 false로 바꾸세요. 그러면 원래의 실제 카카오 로그인으로 동작합니다.
-const KAKAO_NOT_READY = true;
-
 export default function LoginPage() {
   const [consent, setConsent] = useState<ConsentState>({
     termsAgreed: false,
@@ -33,33 +27,6 @@ export default function LoginPage() {
     if (!canProceed || loading) return;
     setLoading(true);
 
-    if (KAKAO_NOT_READY) {
-      // ── 임시 테스트 로그인 (카카오 연동 전) ──────────────────────────
-      // Supabase 대시보드 > Authentication > Sign In / Providers 에서
-      // "Anonymous sign-ins"를 켜둬야 동작합니다.
-      const supabase = createClient();
-      const { error: signInError } = await supabase.auth.signInAnonymously();
-
-      if (signInError) {
-        setLoading(false);
-        alert(
-          "임시 로그인을 시작하지 못했어요. Supabase 대시보드에서 Anonymous sign-ins가 켜져 있는지 확인해줘."
-        );
-        return;
-      }
-
-      await supabase.rpc("complete_signup", {
-        p_terms_agreed: consent.termsAgreed,
-        p_privacy_required_agreed: consent.privacyRequiredAgreed,
-        p_privacy_optional_agreed: consent.privacyOptionalAgreed,
-        p_birth_date: null,
-      });
-
-      window.location.href = "/build";
-      return;
-    }
-
-    // ── 실제 카카오 로그인 (KAKAO_NOT_READY = false 일 때) ────────────
     const payload = encodeURIComponent(
       JSON.stringify({
         termsAgreed: consent.termsAgreed,
