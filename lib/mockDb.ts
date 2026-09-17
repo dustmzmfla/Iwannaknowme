@@ -1,253 +1,273 @@
-// ⚠️ 이 파일은 실제 백엔드가 아닙니다.
-// 브라우저 localStorage를 DB처럼 흉내 낸 "목(mock)" 계층입니다.
-// 함수 시그니처를 실제 Supabase 쿼리와 최대한 비슷하게 맞춰뒀기 때문에,
-// 나중에는 이 파일 내부 구현만 Supabase 클라이언트 호출로 바꾸면
-// 컴포넌트 쪽 코드는 거의 손대지 않아도 됩니다.
+// 관리자 페이지(+ 카테고리/질문 관리, 관리자 계정 관리)가 사용하는 데이터 계층입니다.
+// 실제 Supabase(Postgres) 테이블을 조회/변경합니다.
 //
-// 실제 서비스 전환 시 반드시 지킬 것 (보안):
-// 1. 아래 함수들은 지금 클라이언트(브라우저)에서 그대로 실행되지만,
-//    실서비스에서는 admin* 함수들은 반드시 서버(Route Handler / Server Action)에서만
-//    실행되고, 그 서버 코드가 "요청자가 실제로 관리자 role인지"를 세션으로 검증해야 합니다.
-//    Supabase라면 RLS 정책으로 "admin role만 UPDATE/DELETE 가능"을 DB 레벨에서 강제하세요.
-// 2. 영구 삭제(purge)는 되돌릴 수 없는 만큼, 실서비스에서는 최소 2단계 확인
-//    (비밀번호 재입력 등) + 별도 관리자 계정으로만 허용하는 걸 권장합니다.
-// 3. 생년월일처럼 민감한 선택 정보는 꼭 필요한 화면에서만 조회하고,
-//    목록 화면 등 노출 범위가 넓은 곳에서는 마스킹(예: 2001-**-**) 처리하세요.
+// 보안 설계:
+// - 조회(SELECT)는 브라우저의 Supabase 클라이언트로 직접 실행되지만, RLS 정책이
+//   "본인 또는 관리자만" 보이도록 DB 레벨에서 강제합니다 (supabase/schema.sql 참고).
+// - 상태를 바꾸는 모든 동작은 전부 SECURITY DEFINER RPC 함수를 통해서만 실행되며,
+//   그 함수들이 내부에서 "호출자가 실제로 admin role인지"를 다시 한번 검증합니다.
 
-import { readJSON, writeJSON } from "./storage";
+import { createClient } from "@/lib/supabase/client";
 import type {
+  AdminAllowlistEntry,
   AdminAuditLog,
   AppUser,
+  QuestionBankItem,
+  QuestionCategory,
   Questionnaire,
   QuestionResponse,
 } from "./types";
 
-const KEYS = {
-  users: "iwkm_admin_users",
-  questionnaires: "iwkm_admin_questionnaires",
-  responses: "iwkm_admin_responses",
-  auditLog: "iwkm_admin_audit_log",
-} as const;
-
-function uid(prefix: string) {
-  return `${prefix}_${Math.random().toString(36).slice(2, 9)}`;
-}
-
-function nowISO() {
-  return new Date().toISOString();
-}
-
-// ---------------- 초기 목(mock) 데이터 시드 ----------------
-// 처음 앱을 열었을 때 관리자 페이지가 비어 보이지 않도록 예시 데이터를 채워둡니다.
-function seedIfEmpty() {
-  const users = readJSON<AppUser[]>(KEYS.users, []);
-  if (users.length > 0) return;
-
-  const sampleNames = [
-    "김지수", "이서연", "박민준", "최유진", "정하늘",
-    "강태오", "윤소미", "장현우", "임채원", "한도윤",
-    "오세영", "신아름", "배준서", "황수빈", "송민재",
-  ];
-
-  const seededUsers: AppUser[] = sampleNames.map((name, i) => ({
-    id: uid("user"),
-    kakaoId: `kakao_${1000000 + i}`,
-    name,
-    birthDate: i % 3 === 0 ? null : `199${i % 9}-0${(i % 9) + 1}-1${i % 9}`,
-    createdAt: new Date(Date.now() - i * 86_400_000 * 3).toISOString(),
+function rowToUser(row: any): AppUser {
+  return {
+    id: row.id,
+    kakaoId: row.kakao_id,
+    name: row.name,
+    avatarUrl: row.avatar_url,
+    birthDate: row.birth_date,
+    createdAt: row.created_at,
     consent: {
-      termsAgreedAt: new Date(Date.now() - i * 86_400_000 * 3).toISOString(),
-      privacyRequiredAgreedAt: new Date(Date.now() - i * 86_400_000 * 3).toISOString(),
-      privacyOptionalAgreedAt:
-        i % 3 === 0 ? null : new Date(Date.now() - i * 86_400_000 * 3).toISOString(),
+      termsAgreedAt: row.terms_agreed_at,
+      privacyRequiredAgreedAt: row.privacy_required_agreed_at,
+      privacyOptionalAgreedAt: row.privacy_optional_agreed_at,
     },
-    status: i === 4 ? "suspended" : "active",
-  }));
+    status: row.status,
+    role: row.role,
+  };
+}
 
-  const seededQuestionnaires: Questionnaire[] = seededUsers.map((u) => ({
-    id: uid("qn"),
-    ownerId: u.id,
-    questions: [
-      "내 성격을 한마디로 표현한다면?",
-      "나의 첫인상은 어땠어?",
-      "나에 대해 들은 소문 중에 제일 어이없었던 건?",
-      "나랑 있을 때 가장 편했던 순간은?",
-    ],
+function rowToQuestionnaire(row: any): Questionnaire {
+  return {
+    id: row.id,
+    ownerId: row.owner_id,
+    questions: row.questions,
     relationRequired: true,
     finalMessageRequired: true,
-    createdAt: u.createdAt,
-  }));
-
-  const seededResponses: QuestionResponse[] = seededQuestionnaires.flatMap((qn, qi) =>
-    Array.from({ length: (qi % 4) + 1 }).map((_, ri) => ({
-      id: uid("resp"),
-      questionnaireId: qn.id,
-      nickname: ri % 2 === 0 ? null : `친구${ri}`,
-      isAnonymous: ri % 2 === 0,
-      relationDuration: ["1년 미만", "1년", "2년", "3년", "5년 이상"][ri % 5],
-      relationCloseness: (["악연", "지인", "친구", "인연"] as const)[ri % 4],
-      finalMessage: "항상 응원할게, 앞으로도 잘 지내자!",
-      answers: {
-        0: "털털하고 솔직한 편",
-        1: "생각보다 훨씬 다정했음",
-        2: "연예인이랑 사귄다는 소문 ㅋㅋ",
-        3: "같이 야식 먹으면서 수다 떨 때",
-      },
-      visibility: ri === 0 && qi === 2 ? "hidden_by_user" : "active",
-      createdAt: new Date(Date.now() - ri * 3600_000).toISOString(),
-      moderatedAt: null,
-    }))
-  );
-
-  writeJSON(KEYS.users, seededUsers);
-  writeJSON(KEYS.questionnaires, seededQuestionnaires);
-  writeJSON(KEYS.responses, seededResponses);
-  writeJSON<AdminAuditLog[]>(KEYS.auditLog, []);
+    createdAt: row.created_at,
+  };
 }
 
-// ---------------- 조회 ----------------
+function rowToResponse(row: any): QuestionResponse {
+  return {
+    id: row.id,
+    questionnaireId: row.questionnaire_id,
+    nickname: row.nickname,
+    isAnonymous: row.is_anonymous,
+    relationDuration: row.relation_duration,
+    relationCloseness: row.relation_closeness,
+    finalMessage: row.final_message,
+    answers: row.answers ?? {},
+    visibility: row.visibility,
+    createdAt: row.created_at,
+    moderatedAt: row.moderated_at,
+  };
+}
 
-export function listUsers(params: {
+// ---------------- 유저 조회 ----------------
+
+export async function listUsers(params: {
   search?: string;
-  page: number; // 1-based
+  page: number;
   pageSize: number;
-}): { users: AppUser[]; total: number } {
-  seedIfEmpty();
-  const all = readJSON<AppUser[]>(KEYS.users, []);
-  const q = (params.search ?? "").trim().toLowerCase();
-  const filtered = q
-    ? all.filter(
-        (u) =>
-          u.name.toLowerCase().includes(q) || u.kakaoId.toLowerCase().includes(q)
-      )
-    : all;
-  const start = (params.page - 1) * params.pageSize;
-  const paged = filtered.slice(start, start + params.pageSize);
-  return { users: paged, total: filtered.length };
+}): Promise<{ users: AppUser[]; total: number }> {
+  const supabase = createClient();
+  const q = (params.search ?? "").trim();
+  const from = (params.page - 1) * params.pageSize;
+  const to = from + params.pageSize - 1;
+
+  let query = supabase
+    .from("profiles")
+    .select("*", { count: "exact" })
+    .order("created_at", { ascending: false });
+
+  if (q) {
+    query = query.or(`name.ilike.%${q}%,kakao_id.ilike.%${q}%`);
+  }
+
+  const { data, count, error } = await query.range(from, to);
+  if (error) throw error;
+  return { users: (data ?? []).map(rowToUser), total: count ?? 0 };
 }
 
-export function getUser(userId: string): AppUser | undefined {
-  seedIfEmpty();
-  return readJSON<AppUser[]>(KEYS.users, []).find((u) => u.id === userId);
+export async function getUser(userId: string): Promise<AppUser | undefined> {
+  const supabase = createClient();
+  const { data } = await supabase.from("profiles").select("*").eq("id", userId).maybeSingle();
+  return data ? rowToUser(data) : undefined;
 }
 
-export function getQuestionnaireByOwner(ownerId: string): Questionnaire | undefined {
-  seedIfEmpty();
-  return readJSON<Questionnaire[]>(KEYS.questionnaires, []).find(
-    (q) => q.ownerId === ownerId
-  );
+export async function getQuestionnaireByOwner(ownerId: string): Promise<Questionnaire | undefined> {
+  const supabase = createClient();
+  const { data } = await supabase
+    .from("questionnaires")
+    .select("*")
+    .eq("owner_id", ownerId)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  return data ? rowToQuestionnaire(data) : undefined;
 }
 
-export function listResponses(questionnaireId: string): QuestionResponse[] {
-  seedIfEmpty();
-  return readJSON<QuestionResponse[]>(KEYS.responses, []).filter(
-    (r) => r.questionnaireId === questionnaireId
-  );
+export async function listResponses(questionnaireId: string): Promise<QuestionResponse[]> {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("responses")
+    .select("*")
+    .eq("questionnaire_id", questionnaireId)
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return (data ?? []).map(rowToResponse);
 }
 
-export function listAuditLog(targetId?: string): AdminAuditLog[] {
-  const logs = readJSON<AdminAuditLog[]>(KEYS.auditLog, []);
-  const filtered = targetId ? logs.filter((l) => l.targetId === targetId) : logs;
-  return filtered.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+export async function listAuditLog(targetId?: string): Promise<AdminAuditLog[]> {
+  const supabase = createClient();
+  let query = supabase.from("admin_audit_log").select("*").order("created_at", { ascending: false });
+  if (targetId) query = query.eq("target_id", targetId);
+  const { data, error } = await query;
+  if (error) throw error;
+  return (data ?? []).map((row: any) => ({
+    id: row.id,
+    actorId: row.actor_id ?? "system",
+    actorLabel: row.actor_label,
+    action: row.action,
+    targetType: row.target_type,
+    targetId: row.target_id,
+    createdAt: row.created_at,
+    note: row.note ?? undefined,
+  }));
 }
 
-// ---------------- 관리자 액션 ----------------
-// 실서비스에서는 이 아래 함수들이 서버(Route Handler)에서만 호출되어야 하고,
-// 호출 전에 반드시 "요청자가 admin role인지" 세션 검증을 거쳐야 합니다.
+// ---------------- 관리자 액션 (전부 RPC — auth.uid()로 호출자를 서버에서 직접 확인) ----------------
 
-function appendAuditLog(entry: Omit<AdminAuditLog, "id" | "createdAt">) {
-  const logs = readJSON<AdminAuditLog[]>(KEYS.auditLog, []);
-  logs.push({ ...entry, id: uid("log"), createdAt: nowISO() });
-  writeJSON(KEYS.auditLog, logs);
+export async function hideResponseAsUser(responseId: string) {
+  const supabase = createClient();
+  const { error } = await supabase.rpc("user_hide_own_response", { p_response_id: responseId });
+  if (error) throw error;
 }
 
-function updateResponse(
-  responseId: string,
-  patch: Partial<QuestionResponse>
-): QuestionResponse | undefined {
-  const responses = readJSON<QuestionResponse[]>(KEYS.responses, []);
-  const idx = responses.findIndex((r) => r.id === responseId);
-  if (idx === -1) return undefined;
-  responses[idx] = { ...responses[idx], ...patch, moderatedAt: nowISO() };
-  writeJSON(KEYS.responses, responses);
-  return responses[idx];
+export async function hideResponseAsAdmin(responseId: string) {
+  const supabase = createClient();
+  const { error } = await supabase.rpc("admin_hide_response", { p_response_id: responseId });
+  if (error) throw error;
 }
 
-/** 유저가 자기 화면에서 "삭제"를 누른 경우 — 실제로는 숨김 처리만 됨 */
-export function hideResponseAsUser(responseId: string) {
-  updateResponse(responseId, { visibility: "hidden_by_user" });
-  appendAuditLog({
-    actorId: "system",
-    actorLabel: "유저 본인",
-    action: "hide_response",
-    targetType: "response",
-    targetId: responseId,
-    note: "유저가 자신의 화면에서 답변을 삭제함 (관리자에게는 계속 조회/복구 가능)",
+export async function restoreResponse(responseId: string) {
+  const supabase = createClient();
+  const { error } = await supabase.rpc("admin_restore_response", { p_response_id: responseId });
+  if (error) throw error;
+}
+
+export async function purgeResponse(responseId: string) {
+  const supabase = createClient();
+  const { error } = await supabase.rpc("admin_purge_response", { p_response_id: responseId });
+  if (error) throw error;
+}
+
+export async function setUserSuspended(userId: string, suspended: boolean) {
+  const supabase = createClient();
+  const { error } = await supabase.rpc("admin_set_user_status", {
+    p_user_id: userId,
+    p_suspended: suspended,
   });
+  if (error) throw error;
 }
 
-/** 관리자가 직접 답변을 숨김 처리 (부적절한 내용 신고 대응 등) — 영구삭제와 달리 되돌릴 수 있음 */
-export function hideResponseAsAdmin(
-  responseId: string,
-  admin: { id: string; label: string }
-) {
-  updateResponse(responseId, { visibility: "hidden_by_user" });
-  appendAuditLog({
-    actorId: admin.id,
-    actorLabel: admin.label,
-    action: "hide_response",
-    targetType: "response",
-    targetId: responseId,
-    note: "관리자가 직접 숨김 처리함",
-  });
+// ---------------- 카테고리 / 질문 은행 관리 ----------------
+
+export async function listCategories(): Promise<QuestionCategory[]> {
+  const supabase = createClient();
+  const { data, error } = await supabase.from("categories").select("*").order("sort_order");
+  if (error) throw error;
+  return (data ?? []).map((row: any) => ({
+    id: row.id,
+    name: row.name,
+    sortOrder: row.sort_order,
+    createdAt: row.created_at,
+  }));
 }
 
-/** 관리자가 숨겨진 답변을 되돌림 */
-export function restoreResponse(
-  responseId: string,
-  admin: { id: string; label: string }
-) {
-  updateResponse(responseId, { visibility: "active" });
-  appendAuditLog({
-    actorId: admin.id,
-    actorLabel: admin.label,
-    action: "restore_response",
-    targetType: "response",
-    targetId: responseId,
-  });
+export async function listQuestionBank(categoryId?: string): Promise<QuestionBankItem[]> {
+  const supabase = createClient();
+  let query = supabase.from("question_bank").select("*").order("sort_order");
+  if (categoryId) query = query.eq("category_id", categoryId);
+  const { data, error } = await query;
+  if (error) throw error;
+  return (data ?? []).map((row: any) => ({
+    id: row.id,
+    categoryId: row.category_id,
+    text: row.text,
+    sortOrder: row.sort_order,
+    isActive: row.is_active,
+    createdAt: row.created_at,
+  }));
 }
 
-/** 관리자 영구 삭제 — 관리자도 되돌릴 수 없음 */
-export function purgeResponse(
-  responseId: string,
-  admin: { id: string; label: string }
-) {
-  updateResponse(responseId, { visibility: "purged" });
-  appendAuditLog({
-    actorId: admin.id,
-    actorLabel: admin.label,
-    action: "purge_response",
-    targetType: "response",
-    targetId: responseId,
-    note: "영구 삭제 — 이후 어떤 관리자도 복구할 수 없음",
-  });
+export async function addCategory(name: string): Promise<string> {
+  const supabase = createClient();
+  const { data, error } = await supabase.rpc("admin_add_category", { p_name: name });
+  if (error) throw error;
+  return data as string;
 }
 
-export function setUserSuspended(
-  userId: string,
-  suspended: boolean,
-  admin: { id: string; label: string }
-) {
-  const users = readJSON<AppUser[]>(KEYS.users, []);
-  const idx = users.findIndex((u) => u.id === userId);
-  if (idx === -1) return;
-  users[idx] = { ...users[idx], status: suspended ? "suspended" : "active" };
-  writeJSON(KEYS.users, users);
-  appendAuditLog({
-    actorId: admin.id,
-    actorLabel: admin.label,
-    action: suspended ? "suspend_user" : "unsuspend_user",
-    targetType: "user",
-    targetId: userId,
+export async function deleteCategory(categoryId: string) {
+  const supabase = createClient();
+  const { error } = await supabase.rpc("admin_delete_category", { p_category_id: categoryId });
+  if (error) throw error;
+}
+
+export async function addQuestion(categoryId: string, text: string): Promise<string> {
+  const supabase = createClient();
+  const { data, error } = await supabase.rpc("admin_add_question", {
+    p_category_id: categoryId,
+    p_text: text,
   });
+  if (error) throw error;
+  return data as string;
+}
+
+export async function updateQuestion(questionId: string, text: string, isActive: boolean) {
+  const supabase = createClient();
+  const { error } = await supabase.rpc("admin_update_question", {
+    p_question_id: questionId,
+    p_text: text,
+    p_is_active: isActive,
+  });
+  if (error) throw error;
+}
+
+export async function deleteQuestion(questionId: string) {
+  const supabase = createClient();
+  const { error } = await supabase.rpc("admin_delete_question", { p_question_id: questionId });
+  if (error) throw error;
+}
+
+// ---------------- 관리자 계정 관리 ----------------
+
+export async function listAdmins(): Promise<AdminAllowlistEntry[]> {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("admin_allowlist")
+    .select("*")
+    .order("created_at", { ascending: true });
+  if (error) throw error;
+  return (data ?? []).map((row: any) => ({
+    kakaoId: row.kakao_id,
+    label: row.label,
+    addedBy: row.added_by,
+    createdAt: row.created_at,
+  }));
+}
+
+export async function addAdmin(kakaoId: string, label: string) {
+  const supabase = createClient();
+  const { error } = await supabase.rpc("admin_add_admin", {
+    p_kakao_id: kakaoId.trim(),
+    p_label: label.trim() || null,
+  });
+  if (error) throw error;
+}
+
+export async function removeAdmin(kakaoId: string) {
+  const supabase = createClient();
+  const { error } = await supabase.rpc("admin_remove_admin", { p_kakao_id: kakaoId });
+  if (error) throw error;
 }

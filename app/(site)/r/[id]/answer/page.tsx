@@ -4,17 +4,20 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { BackButton } from "@/components/ui/BackButton";
 import { Button } from "@/components/ui/Button";
-import { getQuestionnaire } from "@/lib/creatorFlow";
+import { getQuestionnaire, type PublishedQuestionnaire } from "@/lib/creatorFlow";
 import { readJSON, writeJSON } from "@/lib/storage";
 import { ANSWER_MAX_LENGTH } from "@/lib/questionPool";
 
 export default function AnswerPage({ params }: { params: { id: string } }) {
   const router = useRouter();
-  const questionnaire = getQuestionnaire(params.id);
+  const [questionnaire, setQuestionnaire] = useState<PublishedQuestionnaire | null | undefined>(
+    undefined
+  );
   const [answers, setAnswers] = useState<Record<number, string>>({});
 
   useEffect(() => {
     setAnswers(readJSON<Record<number, string>>(`iwkm_answers_${params.id}`, {}));
+    getQuestionnaire(params.id).then(setQuestionnaire);
   }, [params.id]);
 
   if (!questionnaire) return null;

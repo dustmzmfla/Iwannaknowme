@@ -94,3 +94,40 @@ export const QUESTION_POOL: QuestionPool = {
 };
 
 export const CATEGORIES = Object.keys(QUESTION_POOL) as Category[];
+
+// ---------------- DB 연동 (관리자 페이지에서 추가한 카테고리/질문 반영) ----------------
+// Supabase에 카테고리가 하나라도 있으면 DB 데이터를 쓰고, 없거나(아직 마이그레이션 전)
+// 네트워크 오류가 나면 위의 정적 QUESTION_POOL로 자연스럽게 폴백합니다.
+export async function loadQuestionPool(): Promise<{ categories: Category[]; pool: QuestionPool }> {
+  try {
+    const { createClient } = await import("./supabase/client");
+    const supabase = createClient();
+    const { data: categories, error: catError } = await supabase
+      .from("categories")
+      .select("id, name")
+      .order("sort_order");
+    if (catError || !categories || categories.length === 0) {
+      return { categories: CATEGORIES, pool: QUESTION_POOL };
+    }
+
+    const { data: questions } = await supabase
+      .from("question_bank")
+      .select("category_id, text")
+      .eq("is_active", true)
+      .order("sort_order");
+
+    const pool: QuestionPool = {};
+    for (const c of categories) pool[c.name] = [];
+    for (const q of questions ?? []) {
+      const cat = categories.find((c) => c.id === q.category_id);
+      if (cat) pool[cat.name].push(q.text);
+    }
+
+    const hasAnyQuestion = Object.values(pool).some((arr) => arr.length > 0);
+    if (!hasAnyQuestion) return { categories: CATEGORIES, pool: QUESTION_POOL };
+
+    return { categories: categories.map((c) => c.name), pool };
+  } catch {
+    return { categories: CATEGORIES, pool: QUESTION_POOL };
+  }
+}

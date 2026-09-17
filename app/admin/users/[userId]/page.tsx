@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import {
   getUser,
@@ -12,7 +12,6 @@ import {
   setUserSuspended,
   listAuditLog,
 } from "@/lib/mockDb";
-import { CURRENT_ADMIN } from "@/lib/adminAuth";
 import { ResponseCard } from "@/components/admin/ResponseCard";
 import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
 import type { AppUser, Questionnaire, QuestionResponse, AdminAuditLog } from "@/lib/types";
@@ -29,22 +28,29 @@ export default function AdminUserDetailPage({ params }: { params: { userId: stri
   const [auditLog, setAuditLog] = useState<AdminAuditLog[]>([]);
   const [confirmSuspend, setConfirmSuspend] = useState(false);
   const [showFullBirth, setShowFullBirth] = useState(false);
+  const [loading, setLoading] = useState(true);
 
-  function refresh() {
-    const u = getUser(params.userId) ?? null;
+  const refresh = useCallback(async () => {
+    setLoading(true);
+    const u = (await getUser(params.userId)) ?? null;
     setUser(u);
-    const qn = getQuestionnaireByOwner(params.userId) ?? null;
+    const qn = (await getQuestionnaireByOwner(params.userId)) ?? null;
     setQuestionnaire(qn);
-    const resps = qn ? listResponses(qn.id) : [];
+    const resps = qn ? await listResponses(qn.id) : [];
     setResponses(resps);
     const targetIds = [params.userId, ...resps.map((r) => r.id)];
-    setAuditLog(listAuditLog().filter((l) => targetIds.includes(l.targetId)));
-  }
+    const logs = await listAuditLog();
+    setAuditLog(logs.filter((l) => targetIds.includes(l.targetId)));
+    setLoading(false);
+  }, [params.userId]);
 
   useEffect(() => {
     refresh();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [params.userId]);
+  }, [refresh]);
+
+  if (loading) {
+    return <p className="text-ink-soft">불러오는 중...</p>;
+  }
 
   if (!user) {
     return (
@@ -68,7 +74,9 @@ export default function AdminUserDetailPage({ params }: { params: { userId: stri
       <div className="bg-white rounded-2xl border border-black/10 p-6 my-4">
         <div className="flex items-start justify-between flex-wrap gap-4">
           <div>
-            <h1 className="text-2xl font-bold mb-1">{user.name}</h1>
+            <h1 className="text-2xl font-bold mb-1">
+              {user.name} {user.role === "admin" && <span className="text-xs bg-ink text-paper-card px-2 py-0.5 rounded-full align-middle">관리자</span>}
+            </h1>
             <p className="text-sm text-ink-soft">카카오 아이디: {maskKakaoId(user.kakaoId)}</p>
             <p className="text-sm text-ink-soft">
               생년월일:{" "}
@@ -116,7 +124,12 @@ export default function AdminUserDetailPage({ params }: { params: { userId: stri
         </div>
 
         <div className="mt-4 pt-4 border-t border-black/10 text-xs text-ink-soft space-y-0.5">
-          <p>필수 개인정보 동의: {new Date(user.consent.privacyRequiredAgreedAt).toLocaleString("ko-KR")}</p>
+          <p>
+            필수 개인정보 동의:{" "}
+            {user.consent.privacyRequiredAgreedAt
+              ? new Date(user.consent.privacyRequiredAgreedAt).toLocaleString("ko-KR")
+              : "기록 없음"}
+          </p>
           <p>
             선택 항목(생년월일 등) 동의:{" "}
             {user.consent.privacyOptionalAgreedAt
@@ -151,16 +164,16 @@ export default function AdminUserDetailPage({ params }: { params: { userId: stri
               key={r.id}
               response={r}
               questions={questionnaire.questions}
-              onHide={() => {
-                hideResponseAsAdmin(r.id, CURRENT_ADMIN);
+              onHide={async () => {
+                await hideResponseAsAdmin(r.id);
                 refresh();
               }}
-              onRestore={() => {
-                restoreResponse(r.id, CURRENT_ADMIN);
+              onRestore={async () => {
+                await restoreResponse(r.id);
                 refresh();
               }}
-              onPurge={() => {
-                purgeResponse(r.id, CURRENT_ADMIN);
+              onPurge={async () => {
+                await purgeResponse(r.id);
                 refresh();
               }}
             />
@@ -202,8 +215,8 @@ export default function AdminUserDetailPage({ params }: { params: { userId: stri
         confirmLabel={user.status === "suspended" ? "정지 해제" : "정지하기"}
         danger={user.status !== "suspended"}
         onCancel={() => setConfirmSuspend(false)}
-        onConfirm={() => {
-          setUserSuspended(user.id, user.status !== "suspended", CURRENT_ADMIN);
+        onConfirm={async () => {
+          await setUserSuspended(user.id, user.status !== "suspended");
           setConfirmSuspend(false);
           refresh();
         }}
@@ -224,6 +237,12 @@ function actionLabel(action: AdminAuditLog["action"]) {
       return "계정 정지";
     case "unsuspend_user":
       return "정지 해제";
+    case "grant_admin":
+      return "관리자 등록";
+    case "revoke_admin":
+      return "관리자 해제";
+    case "delete_account":
+      return "계정 삭제";
     default:
       return action;
   }

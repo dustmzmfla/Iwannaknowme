@@ -1,14 +1,29 @@
-// ⚠️ 데모용 스텁입니다. 지금은 그냥 "현재 로그인한 관리자"를 하드코딩해뒀습니다.
-//
-// 실서비스 전환 시 반드시:
-// 1. /admin 이하 모든 라우트를 Next.js 미들웨어(middleware.ts)에서 세션 검사하고,
-//    admin role이 아니면 로그인 페이지로 리다이렉트 (프론트 라우팅만으로는 절대 막히지 않습니다 —
-//    누구나 /admin URL을 직접 입력해서 접근할 수 있기 때문에 서버 검증이 필수입니다).
-// 2. Supabase 기준으로는 profiles 테이블에 role 컬럼을 두고,
-//    RLS 정책에서 "role = 'admin'인 세션만 다른 유저의 row를 SELECT/UPDATE 가능"하도록
-//    DB 레벨에서도 이중으로 강제하세요. 프론트 체크만 믿으면 API를 직접 호출해서 우회당할 수 있습니다.
-// 3. 영구 삭제(purge) 같은 고위험 액션은 super_admin 등 더 높은 권한 등급으로 한 번 더 분리하는 걸 권장합니다.
-export const CURRENT_ADMIN = {
-  id: "admin_demo_1",
-  label: "관리자(데모)",
-};
+import { createClient } from "@/lib/supabase/server";
+
+export interface CurrentAdmin {
+  id: string;
+  label: string;
+}
+
+/**
+ * 서버 컴포넌트/라우트 핸들러에서 "현재 세션이 관리자인가"를 확인합니다.
+ * 실제 접근 차단은 middleware.ts(+ DB의 RLS)가 이중으로 담당하고,
+ * 이 함수는 admin 레이아웃에서 이름을 보여주거나 최후 방어선으로 한 번 더
+ * 확인하는 용도로 씁니다. 관리자가 아니면 null을 반환합니다.
+ */
+export async function getCurrentAdmin(): Promise<CurrentAdmin | null> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return null;
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role, name")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  if (profile?.role !== "admin") return null;
+  return { id: user.id, label: profile.name ?? "관리자" };
+}

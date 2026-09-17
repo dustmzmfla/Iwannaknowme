@@ -4,20 +4,31 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { BackButton } from "@/components/ui/BackButton";
 import { Button } from "@/components/ui/Button";
-import { getQuestionnaire } from "@/lib/creatorFlow";
+import { getQuestionnaire, type PublishedQuestionnaire } from "@/lib/creatorFlow";
 import { writeJSON } from "@/lib/storage";
 
 const DURATIONS = ["1년 미만", "1년", "2년", "3년", "4년", "5년 이상"];
 
 export default function RespondentEntryPage({ params }: { params: { id: string } }) {
   const router = useRouter();
-  const questionnaire = getQuestionnaire(params.id);
+  const [questionnaire, setQuestionnaire] = useState<PublishedQuestionnaire | null | undefined>(
+    undefined
+  );
   const [nickname, setNickname] = useState("");
   const [duration, setDuration] = useState(DURATIONS[0]);
 
   useEffect(() => {
     writeJSON(`iwkm_entry_${params.id}`, { nickname: "", duration: DURATIONS[0] });
+    getQuestionnaire(params.id).then(setQuestionnaire);
   }, [params.id]);
+
+  if (questionnaire === undefined) {
+    return (
+      <section className="flex flex-col flex-1 px-[22px] py-[26px] items-center justify-center">
+        <p className="text-ink-soft text-sm">불러오는 중...</p>
+      </section>
+    );
+  }
 
   if (!questionnaire) {
     return (

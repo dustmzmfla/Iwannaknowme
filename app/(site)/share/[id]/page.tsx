@@ -4,19 +4,21 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { BackButton } from "@/components/ui/BackButton";
 import { Button } from "@/components/ui/Button";
-import { getQuestionnaire, listResponses } from "@/lib/creatorFlow";
+import { getQuestionnaire, listResponses, type PublishedQuestionnaire } from "@/lib/creatorFlow";
 
 export default function SharePage({ params }: { params: { id: string } }) {
   const [link, setLink] = useState("");
   const [copied, setCopied] = useState(false);
   const [responseCount, setResponseCount] = useState(0);
+  const [questionnaire, setQuestionnaire] = useState<PublishedQuestionnaire | null | undefined>(
+    undefined
+  );
 
   useEffect(() => {
     setLink(`${window.location.origin}/r/${params.id}`);
-    setResponseCount(listResponses(params.id).length);
+    listResponses(params.id).then((list) => setResponseCount(list.length));
+    getQuestionnaire(params.id).then(setQuestionnaire);
   }, [params.id]);
-
-  const questionnaire = getQuestionnaire(params.id);
 
   async function handleCopy() {
     try {
@@ -58,11 +60,9 @@ export default function SharePage({ params }: { params: { id: string } }) {
         >
           질문 다시 고르기
         </Link>
-        <p className="text-center text-xs text-ink-soft">
-          지금까지 {responseCount}명이 답변했어요 (데모: 새로고침 필요할 수 있음)
-        </p>
+        <p className="text-center text-xs text-ink-soft">지금까지 {responseCount}명이 답변했어요</p>
       </div>
-      {!questionnaire && (
+      {questionnaire === null && (
         <p className="text-center text-xs text-accent mt-3">
           질문지를 찾을 수 없어요. 다시 만들어봐 주세요.
         </p>

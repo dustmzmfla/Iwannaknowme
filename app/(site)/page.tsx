@@ -1,10 +1,11 @@
 import Link from "next/link";
+import { Footer } from "@/components/ui/Footer";
 
 export default function IntroPage() {
   return (
     <section className="flex flex-col flex-1 px-[22px] py-[26px]">
       <div className="flex flex-col items-center text-center gap-4 flex-1 justify-center">
-        <svg viewBox="0 0 320 210" width={230} height={151} role="img" aria-label="너에게 난. I wanna know me">
+        <svg viewBox="0 0 320 210" width={230} height={151} role="img" aria-label="나를 알려줘. I wanna know me">
           <g transform="rotate(-4 160 105)">
             <rect x="26" y="30" width="268" height="150" rx="16" fill="#FBF4E4" stroke="#3E3226" strokeWidth={3} />
             <rect x="118" y="14" width="86" height="24" fill="#F0C24E" opacity={0.9} transform="rotate(-3 161 26)" />
@@ -43,6 +44,7 @@ export default function IntroPage() {
           이미 링크 받았어? 여기로 ㄱㄱ
         </Link>
       </div>
+      <Footer />
     </section>
   );
 }

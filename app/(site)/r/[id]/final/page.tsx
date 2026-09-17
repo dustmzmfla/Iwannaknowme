@@ -7,15 +7,16 @@ import { Button } from "@/components/ui/Button";
 import { readJSON } from "@/lib/storage";
 import { submitResponse } from "@/lib/creatorFlow";
 
-const RELATIONS = ["악연", "지인", "친구", "인연"] as const;
+const RELATIONS = ["악연", "지인", "친구", "절친", "인연"] as const;
 
 export default function RespondentFinalPage({ params }: { params: { id: string } }) {
   const router = useRouter();
   const [relation, setRelation] = useState<(typeof RELATIONS)[number] | "">("");
   const [finalMessage, setFinalMessage] = useState("");
   const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
-  function handleSubmit() {
+  async function handleSubmit() {
     if (!relation) {
       setError("나와의 관계를 선택해줘!");
       return;
@@ -24,6 +25,9 @@ export default function RespondentFinalPage({ params }: { params: { id: string }
       setError("마지막 한마디는 꼭 남겨줘!");
       return;
     }
+    if (submitting) return;
+    setSubmitting(true);
+    setError("");
 
     const entry = readJSON<{ nickname: string; duration: string }>(
       `iwkm_entry_${params.id}`,
@@ -31,17 +35,21 @@ export default function RespondentFinalPage({ params }: { params: { id: string }
     );
     const answers = readJSON<Record<number, string>>(`iwkm_answers_${params.id}`, {});
 
-    submitResponse(params.id, {
-      nickname: entry.nickname || null,
-      isAnonymous: entry.nickname.length === 0,
-      duration: entry.duration,
-      relation,
-      finalMessage: finalMessage.trim(),
-      answers,
-      createdAt: new Date().toISOString(),
-    });
-
-    router.push(`/r/${params.id}/done`);
+    try {
+      await submitResponse(params.id, {
+        nickname: entry.nickname || null,
+        isAnonymous: entry.nickname.length === 0,
+        duration: entry.duration,
+        relation,
+        finalMessage: finalMessage.trim(),
+        answers,
+        createdAt: new Date().toISOString(),
+      });
+      router.push(`/r/${params.id}/done`);
+    } catch {
+      setError("답변을 보내지 못했어. 잠시 후 다시 시도해줘.");
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -86,7 +94,9 @@ export default function RespondentFinalPage({ params }: { params: { id: string }
       {error && <p className="text-sm text-accent mb-3">{error}</p>}
 
       <div className="mt-auto pt-5">
-        <Button onClick={handleSubmit}>답변 보내기</Button>
+        <Button onClick={handleSubmit} disabled={submitting}>
+          {submitting ? "보내는 중..." : "답변 보내기"}
+        </Button>
       </div>
     </section>
   );

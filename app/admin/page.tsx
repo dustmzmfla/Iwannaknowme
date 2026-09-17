@@ -10,7 +10,6 @@ const PAGE_SIZE = 30;
 
 function maskBirthDate(birth: string | null) {
   if (!birth) return "미동의";
-  // 목록 화면처럼 노출 범위가 넓은 곳에서는 일부만 보여주는 걸 권장합니다.
   return `${birth.slice(0, 4)}-**-**`;
 }
 
@@ -21,9 +20,21 @@ export default function AdminUserListPage() {
     users: [],
     total: 0,
   });
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    setResult(listUsers({ search, page, pageSize: PAGE_SIZE }));
+    let cancelled = false;
+    setLoading(true);
+    listUsers({ search, page, pageSize: PAGE_SIZE })
+      .then((r) => {
+        if (!cancelled) setResult(r);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [search, page]);
 
   return (
@@ -52,6 +63,7 @@ export default function AdminUserListPage() {
               <th className="px-4 py-3 font-medium">카카오 아이디</th>
               <th className="px-4 py-3 font-medium">생년월일</th>
               <th className="px-4 py-3 font-medium">가입일</th>
+              <th className="px-4 py-3 font-medium">권한</th>
               <th className="px-4 py-3 font-medium">상태</th>
             </tr>
           </thead>
@@ -69,6 +81,13 @@ export default function AdminUserListPage() {
                   {new Date(u.createdAt).toLocaleDateString("ko-KR")}
                 </td>
                 <td className="px-4 py-3">
+                  {u.role === "admin" ? (
+                    <span className="text-xs font-bold text-white bg-ink px-2 py-1 rounded-full">관리자</span>
+                  ) : (
+                    <span className="text-xs text-ink-soft">일반</span>
+                  )}
+                </td>
+                <td className="px-4 py-3">
                   {u.status === "suspended" ? (
                     <span className="text-xs font-bold text-accent bg-accent/10 px-2 py-1 rounded-full">
                       정지됨
@@ -81,9 +100,9 @@ export default function AdminUserListPage() {
                 </td>
               </tr>
             ))}
-            {result.users.length === 0 && (
+            {!loading && result.users.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-4 py-10 text-center text-ink-soft">
+                <td colSpan={6} className="px-4 py-10 text-center text-ink-soft">
                   검색 결과가 없어요.
                 </td>
               </tr>

@@ -9,21 +9,30 @@ import { Button } from "@/components/ui/Button";
 import { readJSON } from "@/lib/storage";
 import { publishQuestionnaire } from "@/lib/creatorFlow";
 import { MIN_QUESTIONS } from "@/lib/questionPool";
+import { useAuth } from "@/lib/auth/AuthProvider";
 
 export default function FinalSetupPage() {
   const router = useRouter();
-  const [name, setName] = useState("");
+  const { profile } = useAuth();
   const [selected, setSelected] = useState<string[]>([]);
+  const [publishing, setPublishing] = useState(false);
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    setName(readJSON("iwkm_draft_name", "친구"));
     setSelected(readJSON<string[]>("iwkm_draft_selected", []));
   }, []);
 
-  function handlePublish() {
-    if (selected.length < MIN_QUESTIONS) return;
-    const id = publishQuestionnaire(name, selected);
-    router.push(`/share/${id}`);
+  async function handlePublish() {
+    if (selected.length < MIN_QUESTIONS || publishing) return;
+    setPublishing(true);
+    setError("");
+    try {
+      const id = await publishQuestionnaire(profile?.name ?? "친구", selected);
+      router.push(`/share/${id}`);
+    } catch {
+      setError("질문지를 발행하지 못했어요. 잠시 후 다시 시도해줘.");
+      setPublishing(false);
+    }
   }
 
   return (
@@ -64,9 +73,11 @@ export default function FinalSetupPage() {
         />
       </Card>
 
-      <div className="mt-auto">
-        <Button onClick={handlePublish} disabled={selected.length < MIN_QUESTIONS}>
-          질문지 완성하기
+      {error && <p className="text-sm text-accent mt-2">{error}</p>}
+
+      <div className="mt-auto pt-5">
+        <Button onClick={handlePublish} disabled={selected.length < MIN_QUESTIONS || publishing}>
+          {publishing ? "발행 중..." : "질문지 완성하기"}
         </Button>
       </div>
     </section>

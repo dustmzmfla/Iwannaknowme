@@ -7,19 +7,32 @@ import { StepBar } from "@/components/ui/StepBar";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { SelectedQuestionList } from "@/components/builder/SelectedQuestionList";
-import { CATEGORIES, MAX_QUESTIONS, MIN_QUESTIONS, QUESTION_POOL } from "@/lib/questionPool";
+import {
+  CATEGORIES,
+  MAX_QUESTIONS,
+  MIN_QUESTIONS,
+  QUESTION_POOL,
+  loadQuestionPool,
+} from "@/lib/questionPool";
 import { readJSON, writeJSON } from "@/lib/storage";
-import type { Category } from "@/lib/types";
+import { useAuth } from "@/lib/auth/AuthProvider";
+import type { Category, QuestionPool } from "@/lib/types";
 
 export default function BuildPage() {
   const router = useRouter();
-  const [name, setName] = useState("");
+  const { profile, loading: authLoading } = useAuth();
+  const [categories, setCategories] = useState<Category[]>(CATEGORIES);
+  const [pool, setPool] = useState<QuestionPool>(QUESTION_POOL);
   const [category, setCategory] = useState<Category>(CATEGORIES[0]);
   const [selected, setSelected] = useState<string[]>([]);
 
   useEffect(() => {
-    setName(readJSON("iwkm_draft_name", "친구"));
     setSelected(readJSON<string[]>("iwkm_draft_selected", []));
+    loadQuestionPool().then(({ categories: c, pool: p }) => {
+      setCategories(c);
+      setPool(p);
+      setCategory((prev) => (c.includes(prev) ? prev : c[0]));
+    });
   }, []);
 
   useEffect(() => {
@@ -44,6 +57,8 @@ export default function BuildPage() {
   }
 
   const canProceed = selected.length >= MIN_QUESTIONS;
+  const name = authLoading ? "" : profile?.name ?? "친구";
+  const questionsInCategory = pool[category] ?? [];
 
   return (
     <section className="flex flex-col flex-1 px-[22px] py-[26px]">
@@ -63,18 +78,18 @@ export default function BuildPage() {
         </div>
         <select
           value={category}
-          onChange={(e) => setCategory(e.target.value as Category)}
+          onChange={(e) => setCategory(e.target.value)}
           className="w-full bg-white border border-black/15 rounded-xl px-3.5 py-3 font-bold mb-3.5 focus:border-accent"
         >
-          {CATEGORIES.map((c) => (
+          {categories.map((c) => (
             <option key={c} value={c}>
-              {c} ({QUESTION_POOL[c].length})
+              {c} ({(pool[c] ?? []).length})
             </option>
           ))}
         </select>
 
         <div className="grid grid-cols-2 gap-2">
-          {QUESTION_POOL[category].map((q) => {
+          {questionsInCategory.map((q) => {
             const picked = selected.includes(q);
             const disabled = !picked && selected.length >= MAX_QUESTIONS;
             return (
