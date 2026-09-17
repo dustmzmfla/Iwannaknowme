@@ -1,4 +1,4 @@
-# 너에게 난? (I wanna know me) — React / TypeScript / Tailwind
+# 나를 알려줘 (I wanna know me) — React / TypeScript / Tailwind
 
 Next.js(App Router) + TypeScript + Tailwind CSS로 이식한 버전입니다.
 

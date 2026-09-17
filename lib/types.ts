@@ -1,7 +1,7 @@
 // 이 파일의 타입들은 실제 Supabase 테이블 스키마와 1:1로 맞춰서 설계했습니다.
 // 나중에 mockDb.ts 를 Supabase 클라이언트 호출로 교체할 때 타입은 그대로 재사용하면 됩니다.
 
-export type Category = "외모" | "성격" | "관계" | "추억" | "가십";
+export type Category = "외모" | "패션" | "성격" | "관계" | "추억" | "가십";
 
 export type QuestionPool = Record<Category, string[]>;
 
