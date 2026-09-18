@@ -2,7 +2,7 @@ import Link from "next/link";
 
 export function Footer() {
   return (
-    <footer className="mt-6 pt-4 border-t border-black/10 flex flex-wrap items-center justify-center gap-x-2.5 gap-y-1 text-[11px] text-ink-soft">
+    <footer className="mt-auto -mx-[22px] px-[22px] pt-4 pb-4 bg-white border-t border-black/10 flex flex-wrap items-center justify-center gap-x-2.5 gap-y-1 text-[11px] text-ink-soft">
       <Link href="/about" className="hover:underline">
         서비스 소개
       </Link>

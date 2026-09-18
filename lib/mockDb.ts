@@ -90,6 +90,20 @@ export async function listUsers(params: {
   return { users: (data ?? []).map(rowToUser), total: count ?? 0 };
 }
 
+export async function getUserStats(): Promise<{ total: number; admins: number; suspended: number }> {
+  const supabase = createClient();
+  const [totalRes, adminsRes, suspendedRes] = await Promise.all([
+    supabase.from("profiles").select("*", { count: "exact", head: true }),
+    supabase.from("profiles").select("*", { count: "exact", head: true }).eq("role", "admin"),
+    supabase.from("profiles").select("*", { count: "exact", head: true }).eq("status", "suspended"),
+  ]);
+  return {
+    total: totalRes.count ?? 0,
+    admins: adminsRes.count ?? 0,
+    suspended: suspendedRes.count ?? 0,
+  };
+}
+
 export async function getUser(userId: string): Promise<AppUser | undefined> {
   const supabase = createClient();
   const { data } = await supabase.from("profiles").select("*").eq("id", userId).maybeSingle();

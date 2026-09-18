@@ -56,7 +56,7 @@ export default function LoginPage() {
         p_birth_date: null,
       });
 
-      window.location.href = "/build";
+      window.location.href = "/";
       return;
     }
 
@@ -75,7 +75,7 @@ export default function LoginPage() {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "kakao",
       options: {
-        redirectTo: `${window.location.origin}/auth/callback?next=/build`,
+        redirectTo: `${window.location.origin}/auth/callback?next=/`,
         // 이메일(account_email)은 카카오 동의항목에 별도 설정(및 비즈 인증)이 필요해서
         // KOE205 오류의 흔한 원인이 됩니다. 이 앱은 이메일을 쓰지 않으니
         // 닉네임/프로필사진만 명시적으로 요청해서 이 문제를 피합니다.

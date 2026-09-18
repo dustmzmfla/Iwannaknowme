@@ -43,7 +43,7 @@ export default function IntroPage() {
   }
 
   return (
-    <section className="relative isolate flex flex-col flex-1 overflow-hidden">
+    <section className="relative isolate flex flex-col flex-1 min-h-[100dvh] overflow-hidden">
       <div
         className="absolute inset-0 z-0"
         style={{ background: "linear-gradient(165deg, #F5EFE6 0%, #EFE7DA 55%, #EAE1D2 100%)" }}
@@ -70,13 +70,8 @@ export default function IntroPage() {
         </filter>
       </svg>
 
-      <div className="relative z-10 flex flex-col flex-1 px-[22px] pt-9 pb-6">
-        <div className="mb-6">
-          <span className="text-[11px] font-bold text-[#7A6A5C] bg-white/55 rounded-lg px-2 py-1">
-            나를 알려줘
-          </span>
-        </div>
-
+      <div className="relative z-10 flex flex-col flex-1 px-[22px] pt-9 pb-0">
+        <div className="flex-1 flex flex-col justify-center">
         <div className="text-center px-2 mb-8">
           <h1 className="glass-title mb-2.5">
             <span className="text-[#2B2320]">
@@ -107,7 +102,7 @@ export default function IntroPage() {
           </p>
         </div>
 
-        <div className="glass-card relative mt-auto p-[22px] rounded-[32px]">
+        <div className="glass-card relative p-[22px] rounded-[32px]">
           <div className="glass-sheen" />
           <div className="glass-edge" />
 
@@ -149,6 +144,7 @@ export default function IntroPage() {
               </div>
             </div>
           )}
+        </div>
         </div>
 
         <Footer />
