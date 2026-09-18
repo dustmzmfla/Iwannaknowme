@@ -17,7 +17,7 @@ const CONSENT_COOKIE = "iwkm_pending_consent";
 // true일 때는 버튼을 눌러도 실제 카카오 로그인 창 대신, Supabase 익명(테스트) 로그인으로
 // 바로 다음 화면(/build)으로 넘어갑니다 — 화면 흐름을 미리 테스트할 수 있도록 하기 위함입니다.
 // 카카오 연동이 끝나면 이 값을 false로 바꾸세요. 그러면 원래의 실제 카카오 로그인으로 동작합니다.
-const KAKAO_NOT_READY = true;
+const KAKAO_NOT_READY = false;
 
 export default function LoginPage() {
   const [consent, setConsent] = useState<ConsentState>({
@@ -42,8 +42,9 @@ export default function LoginPage() {
 
       if (signInError) {
         setLoading(false);
+        console.error("[임시 로그인 실패]", signInError);
         alert(
-          "임시 로그인을 시작하지 못했어요. Supabase 대시보드에서 Anonymous sign-ins가 켜져 있는지 확인해줘."
+          `임시 로그인을 시작하지 못했어요.\n\n[실제 오류 메시지]\n${signInError.message}\n\n(status: ${(signInError as any).status ?? "unknown"})\n\n브라우저 개발자도구 Console 탭에도 자세한 내용이 출력됐어요.`
         );
         return;
       }
@@ -73,12 +74,21 @@ export default function LoginPage() {
     const supabase = createClient();
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "kakao",
-      options: { redirectTo: `${window.location.origin}/auth/callback?next=/build` },
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback?next=/build`,
+        // 이메일(account_email)은 카카오 동의항목에 별도 설정(및 비즈 인증)이 필요해서
+        // KOE205 오류의 흔한 원인이 됩니다. 이 앱은 이메일을 쓰지 않으니
+        // 닉네임/프로필사진만 명시적으로 요청해서 이 문제를 피합니다.
+        scopes: "profile_nickname profile_image",
+      },
     });
 
     if (error) {
       setLoading(false);
-      alert("카카오 로그인을 시작하지 못했어요. 잠시 후 다시 시도해주세요.");
+      console.error("[카카오 로그인 실패]", error);
+      alert(
+        `카카오 로그인을 시작하지 못했어요.\n\n[실제 오류 메시지]\n${error.message}`
+      );
     }
   }
 
