@@ -58,6 +58,7 @@ function rowToResponse(row: any): QuestionResponse {
     finalMessage: row.final_message,
     answers: row.answers ?? {},
     visibility: row.visibility,
+    isRead: !!row.is_read,
     createdAt: row.created_at,
     moderatedAt: row.moderated_at,
   };

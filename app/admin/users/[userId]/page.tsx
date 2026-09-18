@@ -11,6 +11,8 @@ import {
   purgeResponse,
   setUserSuspended,
   listAuditLog,
+  addAdmin,
+  removeAdmin,
 } from "@/lib/mockDb";
 import { ResponseCard } from "@/components/admin/ResponseCard";
 import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
@@ -27,6 +29,8 @@ export default function AdminUserDetailPage({ params }: { params: { userId: stri
   const [responses, setResponses] = useState<QuestionResponse[]>([]);
   const [auditLog, setAuditLog] = useState<AdminAuditLog[]>([]);
   const [confirmSuspend, setConfirmSuspend] = useState(false);
+  const [confirmAdminToggle, setConfirmAdminToggle] = useState(false);
+  const [adminBusy, setAdminBusy] = useState(false);
   const [showFullBirth, setShowFullBirth] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -119,6 +123,17 @@ export default function AdminUserDetailPage({ params }: { params: { userId: stri
               className="text-xs font-bold px-3 py-1.5 rounded-lg border border-black/15"
             >
               {user.status === "suspended" ? "정지 해제" : "계정 정지"}
+            </button>
+            <br />
+            <button
+              onClick={() => setConfirmAdminToggle(true)}
+              className={`text-xs font-bold px-3 py-1.5 rounded-lg border mt-1.5 ${
+                user.role === "admin"
+                  ? "border-accent/40 text-accent"
+                  : "border-black/15"
+              }`}
+            >
+              {user.role === "admin" ? "관리자 해제" : "관리자로 지정"}
             </button>
           </div>
         </div>
@@ -219,6 +234,40 @@ export default function AdminUserDetailPage({ params }: { params: { userId: stri
           await setUserSuspended(user.id, user.status !== "suspended");
           setConfirmSuspend(false);
           refresh();
+        }}
+      />
+
+      <ConfirmDialog
+        open={confirmAdminToggle}
+        title={
+          user.role === "admin"
+            ? "관리자 권한을 해제할까요?"
+            : "관리자로 지정할까요?"
+        }
+        description={
+          user.role === "admin"
+            ? `'${user.name}' 계정은 더 이상 관리자 페이지에 접근할 수 없게 됩니다.`
+            : `'${user.name}' 계정으로 로그인하면 바로 관리자 페이지에 접근할 수 있게 됩니다.`
+        }
+        confirmLabel={user.role === "admin" ? "관리자 해제" : "관리자로 지정"}
+        danger={user.role === "admin"}
+        onCancel={() => setConfirmAdminToggle(false)}
+        onConfirm={async () => {
+          if (adminBusy) return;
+          setAdminBusy(true);
+          try {
+            if (user.role === "admin") {
+              await removeAdmin(user.kakaoId);
+            } else {
+              await addAdmin(user.kakaoId, user.name);
+            }
+            setConfirmAdminToggle(false);
+            await refresh();
+          } catch (e: any) {
+            alert(e?.message ?? "관리자 권한을 변경하지 못했어요.");
+          } finally {
+            setAdminBusy(false);
+          }
         }}
       />
     </div>

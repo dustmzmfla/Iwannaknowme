@@ -88,58 +88,103 @@ export async function listResponses(id: string): Promise<SubmittedResponse[]> {
   }));
 }
 
-// ---------------- "받은 답변 보기" (네비게이션 메뉴) ----------------
+// ---------------- "받은 답변 보기" (질문 목록 → 응답자 목록 → 답변 상세) ----------------
 
 export interface MyQuestionnaireSummary {
   id: string;
   questions: string[];
   createdAt: string;
+  responseCount: number;
+  unreadCount: number;
 }
 
-/** 현재 로그인한 유저가 가장 최근에 만든 질문지 + 거기 달린 답변(숨김/영구삭제 제외)을 가져옵니다. */
-export async function getMyResponses(): Promise<{
-  questionnaire: MyQuestionnaireSummary | null;
-  responses: QuestionResponse[];
-}> {
+function rowToResponse(row: any): QuestionResponse {
+  return {
+    id: row.id,
+    questionnaireId: row.questionnaire_id,
+    nickname: row.nickname,
+    isAnonymous: row.is_anonymous,
+    relationDuration: row.relation_duration,
+    relationCloseness: row.relation_closeness,
+    finalMessage: row.final_message,
+    answers: row.answers ?? {},
+    visibility: row.visibility,
+    isRead: !!row.is_read,
+    createdAt: row.created_at,
+    moderatedAt: row.moderated_at,
+  };
+}
+
+/** 홈 화면에서 "답변보기" 버튼을 보여줄지 결정하기 위한 가벼운 존재 확인. */
+export async function hasAnyQuestionnaire(): Promise<boolean> {
   const supabase = createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { questionnaire: null, responses: [] };
+  if (!user) return false;
+  const { data } = await supabase.from("questionnaires").select("id").eq("owner_id", user.id).limit(1);
+  return !!data && data.length > 0;
+}
 
-  const { data: qn } = await supabase
+/** 현재 로그인한 유저가 만든 모든 질문지 목록 (최신순), 각 질문지의 답변 수/안읽음 수 포함. */
+export async function getMyQuestionnaires(): Promise<MyQuestionnaireSummary[]> {
+  const supabase = createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return [];
+
+  const { data: qns } = await supabase
     .from("questionnaires")
     .select("id, questions, created_at")
     .eq("owner_id", user.id)
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+    .order("created_at", { ascending: false });
+  if (!qns || qns.length === 0) return [];
 
-  if (!qn) return { questionnaire: null, responses: [] };
-
+  const ids = qns.map((q: any) => q.id);
   const { data: resp } = await supabase
     .from("responses")
+    .select("questionnaire_id, is_read")
+    .in("questionnaire_id", ids)
+    .eq("visibility", "active");
+
+  const counts = new Map<string, { total: number; unread: number }>();
+  for (const row of resp ?? []) {
+    const c = counts.get(row.questionnaire_id) ?? { total: 0, unread: 0 };
+    c.total += 1;
+    if (!row.is_read) c.unread += 1;
+    counts.set(row.questionnaire_id, c);
+  }
+
+  return qns.map((q: any) => {
+    const c = counts.get(q.id) ?? { total: 0, unread: 0 };
+    return {
+      id: q.id,
+      questions: q.questions as string[],
+      createdAt: q.created_at,
+      responseCount: c.total,
+      unreadCount: c.unread,
+    };
+  });
+}
+
+/** 특정 질문지에 달린 답변(응답자) 목록 — 숨김/영구삭제 제외, 최신순. */
+export async function getResponsesForQuestionnaire(questionnaireId: string): Promise<QuestionResponse[]> {
+  const supabase = createClient();
+  const { data } = await supabase
+    .from("responses")
     .select("*")
-    .eq("questionnaire_id", qn.id)
+    .eq("questionnaire_id", questionnaireId)
     .eq("visibility", "active")
     .order("created_at", { ascending: false });
+  return (data ?? []).map(rowToResponse);
+}
 
-  return {
-    questionnaire: { id: qn.id, questions: qn.questions as string[], createdAt: qn.created_at },
-    responses: (resp ?? []).map((row: any) => ({
-      id: row.id,
-      questionnaireId: row.questionnaire_id,
-      nickname: row.nickname,
-      isAnonymous: row.is_anonymous,
-      relationDuration: row.relation_duration,
-      relationCloseness: row.relation_closeness,
-      finalMessage: row.final_message,
-      answers: row.answers ?? {},
-      visibility: row.visibility,
-      createdAt: row.created_at,
-      moderatedAt: row.moderated_at,
-    })),
-  };
+/** 답변 하나를 "읽음" 처리합니다 (본인 질문지의 답변만 가능). */
+export async function markResponseRead(responseId: string) {
+  const supabase = createClient();
+  const { error } = await supabase.rpc("user_mark_response_read", { p_response_id: responseId });
+  if (error) throw error;
 }
 
 /** 유저 본인이 받은 답변을 자기 화면에서만 숨깁니다 (관리자는 계속 조회/복구 가능). */

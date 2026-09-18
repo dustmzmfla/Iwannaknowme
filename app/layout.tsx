@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
-import { Gaegu, Noto_Sans_KR } from "next/font/google";
+import { Gaegu, Noto_Sans_KR, Black_Han_Sans } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/lib/auth/AuthProvider";
 import { AdsenseScript } from "@/components/ads/AdsenseScript";
@@ -15,6 +15,13 @@ const noto = Noto_Sans_KR({
   subsets: ["latin"],
   weight: ["400", "500", "700", "900"],
   variable: "--font-noto",
+});
+
+// 홈 화면의 리퀴드 글라스 타이틀 전용 폰트
+const blackHan = Black_Han_Sans({
+  subsets: ["latin"],
+  weight: "400",
+  variable: "--font-black-han",
 });
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
@@ -46,7 +53,7 @@ export const metadata: Metadata = {
 // 루트 레이아웃은 폰트/전역 스타일 + 로그인 상태 제공(AuthProvider) + 애드센스 스크립트를 담당합니다.
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="ko" className={`${gaegu.variable} ${noto.variable}`}>
+    <html lang="ko" className={`${gaegu.variable} ${noto.variable} ${blackHan.variable}`}>
       <body className="min-h-screen font-body text-ink antialiased">
         <AuthProvider>{children}</AuthProvider>
         <AdsenseScript />

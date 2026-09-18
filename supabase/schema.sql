@@ -72,6 +72,7 @@ create table if not exists public.responses (
   final_message text not null,
   answers jsonb not null default '{}'::jsonb,
   visibility text not null default 'active' check (visibility in ('active', 'hidden_by_user', 'purged')),
+  is_read boolean not null default false,
   created_at timestamptz not null default now(),
   moderated_at timestamptz
 );
@@ -298,6 +299,20 @@ begin
 end;
 $$;
 
+create or replace function public.user_mark_response_read(p_response_id uuid)
+returns void language plpgsql security definer set search_path = public as $$
+begin
+  if not exists (
+    select 1 from public.responses r
+    join public.questionnaires q on q.id = r.questionnaire_id
+    where r.id = p_response_id and q.owner_id = auth.uid()
+  ) then
+    raise exception '본인 질문지의 답변만 읽음 처리할 수 있습니다';
+  end if;
+  update public.responses set is_read = true where id = p_response_id and is_read = false;
+end;
+$$;
+
 create or replace function public.admin_add_admin(p_kakao_id text, p_label text)
 returns void language plpgsql security definer set search_path = public as $$
 begin
@@ -376,6 +391,7 @@ end;
 $$;
 
 grant execute on all functions in schema public to authenticated;
+grant execute on function public.user_mark_response_read(uuid) to authenticated;
 
 -- ============================================================================
 -- 초기 카테고리 시드 (lib/questionPool.ts 기본 데이터와 동일한 6개 카테고리)

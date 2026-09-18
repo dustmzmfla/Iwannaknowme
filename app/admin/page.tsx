@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { listUsers } from "@/lib/mockDb";
+import { listUsers, addAdmin, removeAdmin } from "@/lib/mockDb";
 import { Pagination } from "@/components/admin/Pagination";
+import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
 import type { AppUser } from "@/lib/types";
 
 const PAGE_SIZE = 30;
@@ -21,6 +22,9 @@ export default function AdminUserListPage() {
     total: 0,
   });
   const [loading, setLoading] = useState(true);
+  const [adminToggleTarget, setAdminToggleTarget] = useState<AppUser | null>(null);
+  const [adminBusy, setAdminBusy] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -35,7 +39,7 @@ export default function AdminUserListPage() {
     return () => {
       cancelled = true;
     };
-  }, [search, page]);
+  }, [search, page, refreshKey]);
 
   return (
     <div>
@@ -81,11 +85,17 @@ export default function AdminUserListPage() {
                   {new Date(u.createdAt).toLocaleDateString("ko-KR")}
                 </td>
                 <td className="px-4 py-3">
-                  {u.role === "admin" ? (
-                    <span className="text-xs font-bold text-white bg-ink px-2 py-1 rounded-full">관리자</span>
-                  ) : (
-                    <span className="text-xs text-ink-soft">일반</span>
-                  )}
+                  <button
+                    onClick={() => setAdminToggleTarget(u)}
+                    title={u.role === "admin" ? "관리자 해제" : "관리자로 지정"}
+                    className={
+                      u.role === "admin"
+                        ? "text-xs font-bold text-white bg-ink px-2 py-1 rounded-full hover:opacity-80"
+                        : "text-xs text-ink-soft border border-black/15 px-2 py-1 rounded-full hover:bg-black/5"
+                    }
+                  >
+                    {u.role === "admin" ? "관리자" : "일반"}
+                  </button>
                 </td>
                 <td className="px-4 py-3">
                   {u.status === "suspended" ? (
@@ -117,6 +127,40 @@ export default function AdminUserListPage() {
         생년월일은 선택 동의 항목이라 목록에서는 연도만 노출하고 있어요. 전체 값은
         유저 상세 화면에서 확인할 수 있습니다.
       </p>
+
+      <ConfirmDialog
+        open={!!adminToggleTarget}
+        title={
+          adminToggleTarget?.role === "admin"
+            ? "관리자 권한을 해제할까요?"
+            : "관리자로 지정할까요?"
+        }
+        description={
+          adminToggleTarget?.role === "admin"
+            ? `'${adminToggleTarget?.name}' 계정은 더 이상 관리자 페이지에 접근할 수 없게 됩니다.`
+            : `'${adminToggleTarget?.name}' 계정으로 로그인하면 바로 관리자 페이지에 접근할 수 있게 됩니다.`
+        }
+        confirmLabel={adminToggleTarget?.role === "admin" ? "관리자 해제" : "관리자로 지정"}
+        danger={adminToggleTarget?.role === "admin"}
+        onCancel={() => setAdminToggleTarget(null)}
+        onConfirm={async () => {
+          if (!adminToggleTarget || adminBusy) return;
+          setAdminBusy(true);
+          try {
+            if (adminToggleTarget.role === "admin") {
+              await removeAdmin(adminToggleTarget.kakaoId);
+            } else {
+              await addAdmin(adminToggleTarget.kakaoId, adminToggleTarget.name);
+            }
+            setAdminToggleTarget(null);
+            setRefreshKey((k) => k + 1);
+          } catch (e: any) {
+            alert(e?.message ?? "관리자 권한을 변경하지 못했어요.");
+          } finally {
+            setAdminBusy(false);
+          }
+        }}
+      />
     </div>
   );
 }

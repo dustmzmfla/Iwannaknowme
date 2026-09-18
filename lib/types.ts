@@ -51,6 +51,7 @@ export interface QuestionResponse {
   finalMessage: string;
   answers: Record<number, string>; // questionIndex -> 30자 이하 답변
   visibility: ResponseVisibility;
+  isRead: boolean; // 질문지 주인이 이 답변을 열어봤는지 여부
   createdAt: string;
   moderatedAt: string | null;
 }
