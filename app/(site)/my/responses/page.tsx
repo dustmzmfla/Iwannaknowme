@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { BackButton } from "@/components/ui/BackButton";
 import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
+import { Button } from "@/components/ui/Button";
 import {
   getMyQuestionnaires,
   getResponsesForQuestionnaire,
@@ -207,23 +208,21 @@ export default function MyResponsesPage() {
             <div className="border border-black/10 bg-paper-card">
               <table className="w-full table-fixed text-center border-collapse">
                 <colgroup>
-                  <col style={{ width: "24%" }} />
-                  <col style={{ width: "12%" }} />
-                  <col style={{ width: "12%" }} />
                   <col style={{ width: "26%" }} />
-                  <col style={{ width: "26%" }} />
+                  <col style={{ width: "14%" }} />
+                  <col style={{ width: "30%" }} />
+                  <col style={{ width: "30%" }} />
                 </colgroup>
                 <thead>
                   <tr className="border-b border-black/10">
                     <th className="px-2 py-2 text-[11px] font-bold text-ink-soft">만든날짜</th>
-                    <th className="px-2 py-2 text-[11px] font-bold text-ink-soft">질문 수</th>
-                    <th className="px-2 py-2 text-[11px] font-bold text-ink-soft">답변 수</th>
+                    <th className="px-2 py-2 text-[11px] font-bold text-ink-soft">답변</th>
                     <th className="px-2 py-2 text-[11px] font-bold text-ink-soft">답변보기</th>
                     <th className="px-2 py-2 text-[11px] font-bold text-ink-soft">공유하기</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {pagedQuestionnaires.map((q) => (
+                  {pagedQuestionnaires.map((q, i) => (
                     <tr
                       key={q.id}
                       onClick={() => openQuestionnaire(q)}
@@ -235,13 +234,12 @@ export default function MyResponsesPage() {
                           openQuestionnaire(q);
                         }
                       }}
-                      className="border-b border-black/5 last:border-b-0 cursor-pointer hover:bg-black/[0.04] active:bg-black/[0.06] transition-colors"
+                      className={`border-b border-black/5 last:border-b-0 cursor-pointer hover:bg-black/[0.04] active:bg-black/[0.06] transition-colors ${
+                        i % 2 === 0 ? "bg-white" : "bg-paper-card"
+                      }`}
                     >
                       <td className="px-2 py-2 text-[12px] text-ink-soft whitespace-nowrap">
                         {formatDotDate(q.createdAt)}
-                      </td>
-                      <td className="px-2 py-2 text-[12px] text-ink-soft whitespace-nowrap">
-                        {q.questions.length}개
                       </td>
                       <td className="px-2 py-2 text-[12px] font-bold whitespace-nowrap">
                         {q.responseCount}개
@@ -278,16 +276,9 @@ export default function MyResponsesPage() {
       {stage === "respondents" && selectedQuestionnaire && (
         <>
           <h2 className="font-display text-2xl mb-1.5">답변한 친구들</h2>
-          <p className="text-[13.5px] text-ink-soft mb-3 leading-relaxed">
+          <p className="text-[13.5px] text-ink-soft mb-5 leading-relaxed">
             아래에서 눌러야 그 친구가 남긴 답변을 볼 수 있어요.
           </p>
-
-          <button
-            onClick={(e) => handleCopyLink(e, selectedQuestionnaire.id)}
-            className="self-start mb-5 text-[12px] font-bold px-3 py-1.5 border border-black/15 active:bg-black/[0.04] transition-colors"
-          >
-            {copiedId === selectedQuestionnaire.id ? "복사됨" : "이 질문지 링크 복사"}
-          </button>
 
           {loadingRespondents && <p className="text-sm text-ink-soft">불러오는 중...</p>}
 
@@ -311,7 +302,7 @@ export default function MyResponsesPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {pagedRespondents.map((r) => (
+                  {pagedRespondents.map((r, i) => (
                     <tr
                       key={r.id}
                       onClick={() => openResponse(r)}
@@ -323,7 +314,9 @@ export default function MyResponsesPage() {
                           openResponse(r);
                         }
                       }}
-                      className="border-b border-black/5 last:border-b-0 cursor-pointer active:bg-black/[0.03] transition"
+                      className={`border-b border-black/5 last:border-b-0 cursor-pointer active:bg-black/[0.06] transition-colors ${
+                        i % 2 === 0 ? "bg-white" : "bg-paper-card"
+                      }`}
                     >
                       <td className="px-3 py-3 font-bold text-sm truncate">
                         {r.isAnonymous ? "익명" : r.nickname}
@@ -349,6 +342,18 @@ export default function MyResponsesPage() {
               <Pagination page={respondentsPage} totalPages={respondentsTotalPages} onChange={setRespondentsPage} />
             </div>
           )}
+
+          {/* 위쪽 버튼 하나로는 눈에 잘 안 띄어서 테이블 아래에도 링크를 노출합니다.
+              디자인 요소(카드/기울임/장식) 없이 텍스트 + 복사 버튼만 있는 단순한 UI예요. */}
+          <div className="mt-2 mb-4">
+            <div className="text-xs text-ink-soft mb-1.5">공유 링크</div>
+            <div className="text-[13px] font-bold break-all mb-3">
+              {typeof window !== "undefined" ? window.location.origin : ""}/r/{selectedQuestionnaire.id}
+            </div>
+            <Button onClick={(e) => handleCopyLink(e, selectedQuestionnaire.id)}>
+              {copiedId === selectedQuestionnaire.id ? "복사됐어요!" : "링크 복사하기"}
+            </Button>
+          </div>
         </>
       )}
 

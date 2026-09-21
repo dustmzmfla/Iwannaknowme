@@ -113,15 +113,15 @@ export default function IntroPage() {
           {loggedIn ? (
             <div className="relative flex flex-col gap-2.5">
               {hasQuestion && (
-                <button onClick={() => router.push("/my/responses")} className="glass-btn-primary">
+                <button onClick={() => router.push("/my/responses")} className="glass-btn-cta">
                   답변보기
                 </button>
               )}
               <button
                 onClick={() => router.push("/build")}
-                className={hasQuestion ? "glass-btn-secondary" : "glass-btn-primary"}
+                className={hasQuestion ? "glass-btn-secondary" : "glass-btn-cta"}
               >
-                질문 생성하기
+                새 질문 생성
               </button>
               <div className="pt-1.5">
                 <p className="text-[12.5px] font-bold text-[#6B5B4D] mb-2">링크로 답변하기</p>
@@ -212,31 +212,55 @@ export default function IntroPage() {
             inset 2px 0 0 rgba(255, 255, 255, 0.5), inset -2px 0 0 rgba(120, 90, 60, 0.1),
             inset 0 0 0 1px rgba(255, 255, 255, 0.25);
         }
+        /* 로그인이 필요한 카카오 버튼 전용입니다 — 카카오 공식 브랜드 색(#FEE500 배경 +
+           어두운 글자)을 그대로 써서 눈에 잘 띄고 어떤 서비스로 로그인하는지 바로
+           알아볼 수 있게 했습니다. */
         .glass-btn-primary {
           position: relative;
           width: 100%;
           padding: 15px 0;
-          border: 1px solid rgba(255, 255, 255, 0.65);
+          border: 1px solid rgba(255, 255, 255, 0.5);
           border-radius: 16px;
-          background: linear-gradient(180deg, rgba(255, 228, 163, 0.85), rgba(255, 211, 122, 0.85));
-          color: #2b2320;
+          background: #fee500;
+          color: #391b1b;
           font-size: 15.5px;
           font-weight: 800;
           cursor: pointer;
-          box-shadow: 0 10px 22px rgba(232, 93, 74, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.75);
+          box-shadow: 0 10px 22px rgba(62, 50, 38, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.5);
           transition: transform 0.15s ease;
         }
         .glass-btn-primary:active {
+          transform: scale(0.97);
+        }
+        /* "답변보기" / "새 질문 생성" 처럼 이 카드에서 가장 눈에 띄어야 하는 주요
+           버튼입니다. 반투명한 파스텔 배경은 뒤의 흐릿한 대화 말풍선 배경과 섞여서
+           잘 안 보였던 문제가 있어, 사이트 포인트 색(accent)을 불투명하게 꽉 채워서
+           대비를 확실히 올렸습니다. */
+        .glass-btn-cta {
+          position: relative;
+          width: 100%;
+          padding: 15px 0;
+          border: 1px solid rgba(255, 255, 255, 0.4);
+          border-radius: 16px;
+          background: #b23a2e;
+          color: #fbf4e4;
+          font-size: 15.5px;
+          font-weight: 800;
+          cursor: pointer;
+          box-shadow: 0 10px 22px rgba(178, 58, 46, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+          transition: transform 0.15s ease;
+        }
+        .glass-btn-cta:active {
           transform: scale(0.97);
         }
         .glass-btn-secondary {
           position: relative;
           width: 100%;
           padding: 13px 0;
-          border: 1px solid rgba(255, 255, 255, 0.55);
+          border: 1.5px solid #b23a2e;
           border-radius: 16px;
-          background: rgba(255, 255, 255, 0.3);
-          color: #2b2320;
+          background: #fbf4e4;
+          color: #b23a2e;
           font-size: 14.5px;
           font-weight: 800;
           cursor: pointer;
