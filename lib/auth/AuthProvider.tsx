@@ -68,8 +68,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setLoading(false);
   }, []);
 
+  // ⚠️(2026-09 성능 최적화): onAuthStateChange는 구독하자마자 현재 세션 상태로 한 번
+  // 바로 호출됩니다 — 그런데 예전 코드는 그와 별개로 load()를 직접 한 번 더 불러서,
+  // 앱이 처음 열릴 때마다 getUser()+profiles 조회가 중복으로 두 번씩 나갔습니다.
+  // 구독의 첫 콜백이 초기 로딩을 대신하도록 하고, 직접 호출은 없앴습니다.
   useEffect(() => {
-    load();
     const supabase = createClient();
     const {
       data: { subscription },

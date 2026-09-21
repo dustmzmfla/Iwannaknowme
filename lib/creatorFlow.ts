@@ -24,9 +24,14 @@ export interface SubmittedResponse {
 /** 로그인한 본인 이름으로 새 질문지를 발행합니다. 로그인이 안 되어 있으면 에러를 던집니다. */
 export async function publishQuestionnaire(creatorName: string, questions: string[]): Promise<string> {
   const supabase = createClient();
+  // ⚠️(2026-09 성능 최적화): getUser()는 호출할 때마다 Supabase 서버에 네트워크로
+  // 재검증을 요청합니다. 이 화면은 이미 미들웨어가 로그인을 확인한 뒤에만 들어올 수
+  // 있어서, 여기서는 로컬 세션을 바로 읽는 getSession()으로 충분합니다 (실제 권한은
+  // 어차피 서버의 RLS가 다시 검증합니다).
   const {
-    data: { user },
-  } = await supabase.auth.getUser();
+    data: { session },
+  } = await supabase.auth.getSession();
+  const user = session?.user;
   if (!user) throw new Error("로그인이 필요합니다");
 
   const { data, error } = await supabase
@@ -122,8 +127,9 @@ function rowToResponse(row: any): QuestionResponse {
 export async function hasAnyQuestionnaire(): Promise<boolean> {
   const supabase = createClient();
   const {
-    data: { user },
-  } = await supabase.auth.getUser();
+    data: { session },
+  } = await supabase.auth.getSession();
+  const user = session?.user;
   if (!user) return false;
   const { data } = await supabase.from("questionnaires").select("id").eq("owner_id", user.id).limit(1);
   return !!data && data.length > 0;
@@ -133,8 +139,9 @@ export async function hasAnyQuestionnaire(): Promise<boolean> {
 export async function getMyQuestionnaires(): Promise<MyQuestionnaireSummary[]> {
   const supabase = createClient();
   const {
-    data: { user },
-  } = await supabase.auth.getUser();
+    data: { session },
+  } = await supabase.auth.getSession();
+  const user = session?.user;
   if (!user) return [];
 
   const { data: qns } = await supabase

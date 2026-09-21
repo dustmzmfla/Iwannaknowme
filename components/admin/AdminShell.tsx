@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { getPendingInquiryCount } from "@/lib/inquiries";
+import { useAuth } from "@/lib/auth/AuthProvider";
 
 interface NavItem {
   href: string;
@@ -30,9 +31,11 @@ const COLLAPSE_KEY = "iwkm_admin_sidebar_collapsed";
  * Supabase Realtime replication 설정 없이도 바로 동작하고, 관리자 화면 특성상 이 정도
  * 지연(최대 20초)은 충분히 "거의 실시간"으로 느껴집니다.
  */
-export function AdminShell({ adminLabel, children }: { adminLabel: string; children: ReactNode }) {
+export function AdminShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
+  const { profile } = useAuth();
+  const adminLabel = profile?.name ?? "관리자";
   const [collapsed, setCollapsed] = useState(false);
   const [pending, setPending] = useState(0);
 

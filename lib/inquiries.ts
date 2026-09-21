@@ -56,9 +56,13 @@ export async function createInquiry(input: {
   isSecret: boolean;
 }): Promise<string> {
   const supabase = createClient();
+  // ⚠️(2026-09 성능 최적화): 이 화면은 미들웨어가 이미 로그인을 확인한 뒤에만 들어올 수
+  // 있어서, 네트워크 재검증이 필요한 getUser() 대신 로컬 세션을 읽는 getSession()을
+  // 씁니다 (실제 권한은 서버의 RLS가 다시 검증합니다).
   const {
-    data: { user },
-  } = await supabase.auth.getUser();
+    data: { session },
+  } = await supabase.auth.getSession();
+  const user = session?.user;
   if (!user) throw new Error("로그인이 필요합니다");
 
   const { data: profile } = await supabase.from("profiles").select("name").eq("id", user.id).maybeSingle();
