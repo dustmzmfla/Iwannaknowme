@@ -9,6 +9,7 @@ import {
   isConsentValid,
 } from "@/components/ui/ConsentCheckboxes";
 import { useAuth } from "@/lib/auth/AuthProvider";
+import { LoadingOverlay } from "@/components/ui/LoadingOverlay";
 import { createClient } from "@/lib/supabase/client";
 
 /**
@@ -70,11 +71,7 @@ export default function LoginConsentPage() {
   }
 
   if (loading || !profile) {
-    return (
-      <section className="flex flex-col flex-1 px-[22px] py-[26px]">
-        <p className="text-sm text-ink-soft">불러오는 중...</p>
-      </section>
-    );
+    return <LoadingOverlay message="정보를 불러오는 중" />;
   }
 
   return (

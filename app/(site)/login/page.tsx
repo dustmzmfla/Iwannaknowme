@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { BackButton } from "@/components/ui/BackButton";
+import { LoadingOverlay } from "@/components/ui/LoadingOverlay";
 import { createClient } from "@/lib/supabase/client";
 
 // 카카오 디벨로퍼스 키 + Supabase Kakao Provider 연동이 아직 안 끝났으면 true로 둡니다.
@@ -9,7 +11,7 @@ import { createClient } from "@/lib/supabase/client";
 // 카카오 연동이 끝나면 이 값을 false로 바꾸세요. 그러면 원래의 실제 카카오 로그인으로 동작합니다.
 const KAKAO_NOT_READY = false;
 
-async function startLogin(): Promise<string | null> {
+async function startLogin(router: ReturnType<typeof useRouter>): Promise<string | null> {
   const supabase = createClient();
 
   if (KAKAO_NOT_READY) {
@@ -22,7 +24,7 @@ async function startLogin(): Promise<string | null> {
       p_privacy_optional_agreed: false,
       p_birth_date: null,
     });
-    window.location.href = "/";
+    router.replace("/");
     return null;
   }
 
@@ -46,13 +48,14 @@ async function startLogin(): Promise<string | null> {
  * 메인으로 돌아갑니다 (app/auth/callback/route.ts 참고).
  */
 export default function LoginPage() {
+  const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
-    startLogin().then((message) => {
+    startLogin(router).then((message) => {
       if (cancelled) return;
       if (message) {
         console.error("[로그인 실패]", message);
@@ -68,7 +71,7 @@ export default function LoginPage() {
   function retry() {
     setError(null);
     setLoading(true);
-    startLogin().then((message) => {
+    startLogin(router).then((message) => {
       if (message) {
         console.error("[로그인 실패]", message);
         setError(message);
@@ -81,7 +84,7 @@ export default function LoginPage() {
     <section className="flex flex-col flex-1 px-[22px] py-[26px]">
       <BackButton fallbackHref="/" />
       <div className="flex-1 flex flex-col items-center justify-center text-center gap-3">
-        {error ? (
+        {error && (
           <>
             <p className="text-sm text-accent font-bold">카카오 로그인을 시작하지 못했어요.</p>
             <p className="text-xs text-ink-soft leading-relaxed">{error}</p>
@@ -89,10 +92,9 @@ export default function LoginPage() {
               다시 시도하기
             </button>
           </>
-        ) : (
-          <p className="text-sm text-ink-soft">{loading ? "카카오 로그인으로 이동 중..." : ""}</p>
         )}
       </div>
+      {loading && !error && <LoadingOverlay message="카카오로 이동하는 중" />}
     </section>
   );
 }

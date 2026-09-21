@@ -1,24 +1,15 @@
 import { NextResponse } from "next/server";
 
 /**
- * 카카오 로그인 콜백. 여기서 세션 교환 + 프로필 조회까지 다 끝낸 뒤에야 302
- * 리다이렉트를 돌려주면, 그 작업(카카오/Supabase 네트워크 왕복 포함)이 걸리는
- * 1~3초 동안 브라우저엔 아무것도 그려지지 않는 새하얀 빈 화면만 떠 있게 됩니다.
+ * 카카오 로그인 콜백. 예전엔 여기서 세션 교환 + 프로필 조회까지 다 끝낸 뒤에야
+ * 302 리다이렉트를 돌려줬는데, 그 작업(카카오/Supabase 네트워크 왕복 포함)이
+ * 1~3초 정도 걸리는 동안 브라우저엔 아무것도 그려지지 않는 새하얀 빈 화면만
+ * 떠 있었습니다 — "로그인이 안 되는 것처럼 보인다"는 피드백의 원인이었습니다.
  *
  * 라우트 핸들러는 React를 그릴 수 없어서, 대신 이 GET이 "즉시"(비동기 작업 없이)
- * 눈 두 개가 도리도리 돌아가는 로딩 화면을 완성된 HTML로 반환합니다. 실제 세션
- * 교환은 그 화면이 뜬 채로 /api/auth/exchange 에 맡기고, 응답으로 받은 목적지로
- * 이동시킵니다.
- *
- * ⚠️ 참고: 한때 이 라우트를 없애고 Next.js 페이지 + 클라이언트 사이드
- * exchangeCodeForSession + router.replace()로 바꿔서 "화면이 통째로 새로고침되며
- * 두 번 깜빡이는" 문제를 없애보려 했었는데, 그러면 AuthProvider(브라우저의
- * supabase 클라이언트를 구독하는 로그인 상태)가 서버가 몰래 바꿔치기한 세션을
- * 전혀 모르게 되어 /login/consent 에서 "로그인 안 된 사람"으로 오인 → 다시
- * /login으로 튕김 → 다시 로그인 시도 → 다시 콜백... 하는 무한 루프가 생겼습니다.
- * 그래서 이 새로고침 기반 버전으로 되돌렸습니다 — 완전 새로고침이 한 번 더
- * 있어서(목적지 페이지가 잠깐 다시 로드되는) 살짝 깜빡이지만, 최소한 로그인은
- * 확실하게 끝까지 됩니다.
+ * 눈 두 개가 두리번거리는 로딩 화면을 완성된 HTML로 반환합니다. 실제 세션 교환은
+ * 그 화면이 뜬 채로 /api/auth/exchange 에 맡기고, 응답으로 받은 목적지로
+ * 클라이언트에서 이동시킵니다.
  */
 export async function GET() {
   return new NextResponse(CALLBACK_HTML, {
@@ -45,18 +36,15 @@ const CALLBACK_HTML = `<!doctype html>
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 24px;
+    gap: 20px;
     background: rgba(62, 50, 38, 0.94);
     font-family: -apple-system, BlinkMacSystemFont, "Noto Sans KR", sans-serif;
-  }
-  .eyes-wrap {
-    perspective: 260px;
   }
   .eyes {
     display: flex;
     align-items: center;
     gap: 12px;
-    animation: faceTurn 2.6s ease-in-out infinite;
+    animation: eyesRow 4.8s ease-in-out infinite;
   }
   .eye {
     width: 36px;
@@ -66,14 +54,17 @@ const CALLBACK_HTML = `<!doctype html>
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+    overflow: hidden;
   }
+  .eye.left { animation: eyeLeft 4.8s ease-in-out infinite; }
+  .eye.right { animation: eyeRight 4.8s ease-in-out infinite; }
   .pupil {
     position: relative;
     width: 14px;
     height: 14px;
     border-radius: 50%;
     background: #3E3226;
+    animation: pupil 4.8s ease-in-out infinite;
   }
   .pupil::after {
     content: "";
@@ -96,22 +87,41 @@ const CALLBACK_HTML = `<!doctype html>
     width: 1.2em;
     text-align: left;
   }
-  @keyframes faceTurn {
-    0%, 100% { transform: translateX(0) rotateY(0deg) rotateZ(0deg); }
-    20% { transform: translateX(6px) rotateY(24deg) rotateZ(2deg); }
-    40% { transform: translateX(0) rotateY(0deg) rotateZ(0deg); }
-    60% { transform: translateX(-6px) rotateY(-24deg) rotateZ(-2deg); }
-    80% { transform: translateX(0) rotateY(0deg) rotateZ(0deg); }
+  @keyframes eyesRow {
+    0%, 100% { transform: translateX(0); }
+    20% { transform: translateX(7px); }
+    40% { transform: translateX(0); }
+    60% { transform: translateX(-7px); }
+    80% { transform: translateX(0); }
+  }
+  @keyframes eyeLeft {
+    0%, 100% { transform: scale(1); }
+    20% { transform: scale(0.86); }
+    40% { transform: scale(1); }
+    60% { transform: scale(1.28); }
+    80% { transform: scale(1); }
+  }
+  @keyframes eyeRight {
+    0%, 100% { transform: scale(1); }
+    20% { transform: scale(1.28); }
+    40% { transform: scale(1); }
+    60% { transform: scale(0.86); }
+    80% { transform: scale(1); }
+  }
+  @keyframes pupil {
+    0%, 100% { transform: translateX(0); }
+    20% { transform: translateX(5px); }
+    40% { transform: translateX(0); }
+    60% { transform: translateX(-5px); }
+    80% { transform: translateX(0); }
   }
 </style>
 </head>
 <body>
   <div class="overlay">
-    <div class="eyes-wrap">
-      <div class="eyes">
-        <div class="eye"><div class="pupil"></div></div>
-        <div class="eye"><div class="pupil"></div></div>
-      </div>
+    <div class="eyes">
+      <div class="eye left"><div class="pupil"></div></div>
+      <div class="eye right"><div class="pupil"></div></div>
     </div>
     <p class="msg">두리번두리번 찾는 중<span class="dots" id="dots"></span></p>
   </div>

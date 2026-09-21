@@ -16,3 +16,80 @@ textarea {
   outline: none;
   font-family: inherit;
 }
+
+/* ============================================================================
+   로딩 오버레이(components/ui/LoadingOverlay.tsx) 애니메이션 — 얼굴 형태 없이
+   눈 두 개만 나와서 "도리도리" 돌아갑니다. 눈 두 개를 감싼 그룹 전체에
+   perspective + rotateY를 줘서 평평하게 눌리지 않고 입체적으로 돌아가는
+   것처럼 보이고, translateX로 고개를 돌리는 쪽으로 위치가 살짝 이동하고,
+   rotateZ로 아주 살짝 기울어집니다.
+   ============================================================================ */
+@keyframes iwkm-face-turn {
+  0%,
+  100% {
+    transform: translateX(0) rotateY(0deg) rotateZ(0deg);
+  }
+  20% {
+    transform: translateX(6px) rotateY(24deg) rotateZ(2deg);
+  }
+  40% {
+    transform: translateX(0) rotateY(0deg) rotateZ(0deg);
+  }
+  60% {
+    transform: translateX(-6px) rotateY(-24deg) rotateZ(-2deg);
+  }
+  80% {
+    transform: translateX(0) rotateY(0deg) rotateZ(0deg);
+  }
+}
+
+/* ============================================================================
+   메인 랜딩(app/(site)/page.tsx) 배경의 흐릿한 대화 말풍선들입니다.
+   원래 이 페이지 안의 <style jsx>에 있었는데, 그 안에서 CHAT_LINES.length /
+   SET_TRAVEL 같은 런타임 JS 값을 문자열 보간으로 써서 스타일드-jsx가 이걸
+   SSR 시점에 정적으로 못 뽑아내고 클라이언트에서 하이드레이션 후에야
+   <style> 태그를 붙였습니다. 그래서 페이지가 열리자마자 아주 잠깐
+   (position/opacity/blur가 적용되기 전) 이 대화 텍스트들이 배경이 아니라
+   그냥 화면 위에 쌓인 평범한 글자들로 다 보이는 깜빡임이 있었습니다.
+
+   이 규칙들은 컴포넌트 CSS가 아니라 이 전역 스타일시트(globals.css, 항상
+   <head>에서 렌더링 전에 로드됨)에 있어야 첫 페인트 전부터 바로 적용되어
+   깜빡임이 없습니다. 그래서 여기로 옮기고, CHAT_LINES.length(10)와
+   SET_TRAVEL(10 * 11vh = 110vh) 값도 고정값으로 박아뒀습니다 — 이 둘을
+   바꾸면 app/(site)/page.tsx의 CHAT_LINES / SLOT_VH도 같이 맞춰야 합니다.
+   ============================================================================ */
+.chat-layer {
+  filter: blur(3px);
+  opacity: 0.55;
+}
+.chat-bubble {
+  position: absolute;
+  max-width: 210px;
+  padding: 10px 14px;
+  border-radius: 18px;
+  font-size: 12.5px;
+  font-weight: 700;
+  line-height: 1.4;
+  box-shadow: 0 3px 10px rgba(120, 90, 60, 0.1);
+  animation: chatMove 18s steps(10, end) infinite;
+}
+.chat-bubble-left {
+  left: 16px;
+  background: #ffffff;
+  color: #4a3e34;
+  border-bottom-left-radius: 4px;
+}
+.chat-bubble-right {
+  right: 16px;
+  background: #ffd37a;
+  color: #3a2e1e;
+  border-bottom-right-radius: 4px;
+}
+@keyframes chatMove {
+  0% {
+    transform: translateY(0);
+  }
+  100% {
+    transform: translateY(-110vh);
+  }
+}

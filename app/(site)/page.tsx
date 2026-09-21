@@ -21,6 +21,7 @@ const CHAT_LINES: { side: "left" | "right"; text: string }[] = [
 ];
 const SLOT_VH = 11; // 말풍선 한 칸의 세로 간격
 const SET_TRAVEL = CHAT_LINES.length * SLOT_VH; // 한 세트가 전부 이동하는 거리(vh) — 두 세트를 이어붙여 무한 루프
+// ⚠️ 이 둘(CHAT_LINES.length, SLOT_VH)은 app/globals.css의 .chat-bubble / @keyframes chatMove에도 값이 박혀있습니다 (스타일드-jsx는 런타임 계산값을 SSR로 적용 못해서 첫 로딩 직후 배경 대화글이 잠깐 그대로 보이는 이슈가 있어서 globals.css로 옮겨놓았습니다). 이 배열을 바꿀거나 SLOT_VH를 바꾸면 globals.css도 같이 고쳐야 합니다.
 
 export default function IntroPage() {
   const router = useRouter();
@@ -178,41 +179,6 @@ export default function IntroPage() {
           }
           100% {
             transform: translateY(0);
-          }
-        }
-        .chat-layer {
-          filter: blur(3px);
-          opacity: 0.55;
-        }
-        .chat-bubble {
-          position: absolute;
-          max-width: 210px;
-          padding: 10px 14px;
-          border-radius: 18px;
-          font-size: 12.5px;
-          font-weight: 700;
-          line-height: 1.4;
-          box-shadow: 0 3px 10px rgba(120, 90, 60, 0.1);
-          animation: chatMove 18s steps(${CHAT_LINES.length}, end) infinite;
-        }
-        .chat-bubble-left {
-          left: 16px;
-          background: #ffffff;
-          color: #4a3e34;
-          border-bottom-left-radius: 4px;
-        }
-        .chat-bubble-right {
-          right: 16px;
-          background: #ffd37a;
-          color: #3a2e1e;
-          border-bottom-right-radius: 4px;
-        }
-        @keyframes chatMove {
-          0% {
-            transform: translateY(0);
-          }
-          100% {
-            transform: translateY(-${SET_TRAVEL}vh);
           }
         }
         .glass-card {

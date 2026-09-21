@@ -110,6 +110,17 @@ export async function getUser(userId: string): Promise<AppUser | undefined> {
   return data ? rowToUser(data) : undefined;
 }
 
+export async function getRecentUsers(limit = 5): Promise<AppUser[]> {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("*")
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  if (error) throw error;
+  return (data ?? []).map(rowToUser);
+}
+
 export async function getQuestionnaireByOwner(ownerId: string): Promise<Questionnaire | undefined> {
   const supabase = createClient();
   const { data } = await supabase

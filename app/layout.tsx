@@ -4,6 +4,7 @@ import { Gaegu, Noto_Sans_KR, Black_Han_Sans } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/lib/auth/AuthProvider";
 import { AdsenseScript } from "@/components/ads/AdsenseScript";
+import { VisitTracker } from "@/components/analytics/VisitTracker";
 
 const gaegu = Gaegu({
   subsets: ["latin"],
@@ -55,7 +56,10 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="ko" className={`${gaegu.variable} ${noto.variable} ${blackHan.variable}`}>
       <body className="min-h-screen font-body text-ink antialiased">
-        <AuthProvider>{children}</AuthProvider>
+        <AuthProvider>
+          <VisitTracker />
+          {children}
+        </AuthProvider>
         <AdsenseScript />
       </body>
     </html>

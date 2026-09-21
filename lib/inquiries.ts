@@ -110,3 +110,24 @@ export async function replyToInquiry(id: string, reply: string): Promise<void> {
   });
   if (error) throw error;
 }
+
+export async function getPendingInquiryCount(): Promise<number> {
+  const supabase = createClient();
+  const { count } = await supabase
+    .from("inquiries")
+    .select("*", { count: "exact", head: true })
+    .is("admin_reply", null);
+  return count ?? 0;
+}
+
+export async function getRecentPendingInquiries(limit = 5): Promise<Inquiry[]> {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("inquiries")
+    .select("*")
+    .is("admin_reply", null)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  if (error) throw error;
+  return (data ?? []).map(rowToInquiry);
+}

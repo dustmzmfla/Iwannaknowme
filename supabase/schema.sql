@@ -106,6 +106,11 @@ create table if not exists public.inquiries (
   updated_at timestamptz not null default now()
 );
 
+create table if not exists public.daily_visits (
+  day date primary key,
+  count int not null default 0
+);
+
 create index if not exists idx_question_bank_category on public.question_bank(category_id);
 create index if not exists idx_questionnaires_owner on public.questionnaires(owner_id);
 create index if not exists idx_responses_questionnaire on public.responses(questionnaire_id);
@@ -124,6 +129,7 @@ alter table public.questionnaires enable row level security;
 alter table public.responses enable row level security;
 alter table public.admin_audit_log enable row level security;
 alter table public.inquiries enable row level security;
+alter table public.daily_visits enable row level security;
 
 create or replace function public.is_admin()
 returns boolean
@@ -174,6 +180,9 @@ create policy "inquiries_update_own" on public.inquiries
 create policy "inquiries_delete_own_or_admin" on public.inquiries
   for delete using (author_id = auth.uid() or public.is_admin());
 
+create policy "daily_visits_select_admin" on public.daily_visits
+  for select using (public.is_admin());
+
 grant usage on schema public to anon, authenticated;
 grant select on public.categories, public.question_bank, public.questionnaires to anon, authenticated;
 grant insert on public.questionnaires to authenticated;
@@ -184,6 +193,7 @@ grant select on public.inquiries to authenticated;
 grant insert on public.inquiries to authenticated;
 grant delete on public.inquiries to authenticated;
 grant update (title, content, is_secret, updated_at) on public.inquiries to authenticated;
+grant select on public.daily_visits to authenticated;
 
 -- ============================================================================
 -- 신규 가입 시 profiles 자동 생성 + admin_allowlist 동기화
@@ -440,9 +450,19 @@ begin
 end;
 $$;
 
+create or replace function public.record_visit()
+returns void language plpgsql security definer set search_path = public as $$
+begin
+  insert into public.daily_visits (day, count)
+  values (current_date, 1)
+  on conflict (day) do update set count = public.daily_visits.count + 1;
+end;
+$$;
+
 grant execute on all functions in schema public to authenticated;
 grant execute on function public.user_mark_response_read(uuid) to authenticated;
 grant execute on function public.admin_reply_inquiry(uuid, text) to authenticated;
+grant execute on function public.record_visit() to anon, authenticated;
 
 -- ============================================================================
 -- 초기 카테고리 시드 (lib/questionPool.ts 기본 데이터와 동일한 6개 카테고리)

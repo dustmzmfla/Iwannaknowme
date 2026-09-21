@@ -1,0 +1,78 @@
+"use client";
+
+import { useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
+import { useAuth } from "@/lib/auth/AuthProvider";
+import { LoadingOverlay } from "@/components/ui/LoadingOverlay";
+
+/**
+ * 카카오 로그인 콜백.
+ *
+ * ⚠️ 이전 버전의 버그: 세션 교환을 서버 라우트(/api/auth/exchange, 서버 supabase
+ * 클라이언트)에서 처리했는데, 그러면 "이 브라우저의" supabase 클라이언트(그리고
+ * 거기 구독 중인 AuthProvider)는 로그인이 됐다는 걸 전혀 모릅니다 — 쿠키만 서버가
+ * 몰래 바꿔치기한 셈이라 onAuthStateChange가 안 터집니다. 그 상태로
+ * /login/consent에 도착하면 AuthProvider.profile이 여전히 null이라 "로그인 안 된
+ * 사람"으로 오인해서 다시 /login으로 튕기고, /login은 또 로그인을 시도하고,
+ * 다시 콜백으로 돌아오고... 하면서 무한 루프(=무한 로딩)에 빠졌습니다.
+ *
+ * 그래서 세션 교환을 반드시 "이 브라우저의" supabase 클라이언트로 해야 합니다 —
+ * 그래야 AuthProvider가 곧바로 최신 로그인 상태를 알게 됩니다. 이동도
+ * router.replace()라서 완전 새로고침 없이 로딩 화면이 끊기지 않고 이어집니다.
+ */
+export default function AuthCallbackPage() {
+  const router = useRouter();
+  const { refresh } = useAuth();
+  const ran = useRef(false);
+
+  useEffect(() => {
+    if (ran.current) return;
+    ran.current = true;
+
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get("code");
+    const next = params.get("next") || "/";
+
+    if (!code) {
+      router.replace("/login?error=oauth");
+      return;
+    }
+
+    (async () => {
+      const supabase = createClient();
+      const { error } = await supabase.auth.exchangeCodeForSession(code);
+      if (error) {
+        console.error("[로그인 콜백 실패]", error.message);
+        router.replace("/login?error=oauth");
+        return;
+      }
+
+      // AuthProvider(햄버거 네비 등 앱 전체가 구독하는 로그인 상태)가 방금 로그인된
+      // 세션을 바로 알도록 명시적으로 새로고침합니다. onAuthStateChange 구독으로도
+      // 결국 갱신되지만, 바로 다음 줄에서 최신 profile이 필요해서 여기서 기다립니다.
+      await refresh();
+
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (user) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("terms_agreed_at")
+          .eq("id", user.id)
+          .maybeSingle();
+
+        if (!profile?.terms_agreed_at) {
+          router.replace(`/login/consent?next=${encodeURIComponent(next)}`);
+          return;
+        }
+      }
+
+      router.replace(next);
+    })();
+  }, [router, refresh]);
+
+  return <LoadingOverlay message="두리번두리번 찾는 중" />;
+}
