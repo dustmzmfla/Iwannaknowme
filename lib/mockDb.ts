@@ -43,6 +43,7 @@ function rowToQuestionnaire(row: any): Questionnaire {
     questions: row.questions,
     relationRequired: true,
     finalMessageRequired: true,
+    visibility: row.visibility ?? "active",
     createdAt: row.created_at,
   };
 }
@@ -199,6 +200,15 @@ export async function restoreResponse(responseId: string) {
 export async function purgeResponse(responseId: string) {
   const supabase = createClient();
   const { error } = await supabase.rpc("admin_purge_response", { p_response_id: responseId });
+  if (error) throw error;
+}
+
+/** 질문자가 삭제(숨김)한 질문지를 관리자가 다시 보이게 복구합니다. */
+export async function restoreQuestionnaire(questionnaireId: string) {
+  const supabase = createClient();
+  const { error } = await supabase.rpc("admin_restore_questionnaire", {
+    p_questionnaire_id: questionnaireId,
+  });
   if (error) throw error;
 }
 

@@ -59,6 +59,10 @@ create table if not exists public.questionnaires (
   questions jsonb not null,
   relation_required boolean not null default true,
   final_message_required boolean not null default true,
+  -- ⚠️(2026-09): 질문자가 "질문 삭제"를 누르면 실제로 행을 지우지 않고 이 값만
+  -- 'hidden_by_user'로 바꿉니다 (소프트 삭제). 그래야 관리자 페이지에서 계속 조회하고
+  -- 필요하면 복구할 수 있어요. responses.visibility와 같은 패턴입니다.
+  visibility text not null default 'active' check (visibility in ('active', 'hidden_by_user')),
   created_at timestamptz not null default now()
 );
 
@@ -82,7 +86,7 @@ create table if not exists public.admin_audit_log (
   actor_id uuid,
   actor_label text not null,
   action text not null,
-  target_type text not null check (target_type in ('response', 'user', 'admin', 'inquiry')),
+  target_type text not null check (target_type in ('response', 'user', 'admin', 'inquiry', 'questionnaire')),
   target_id text not null,
   note text,
   created_at timestamptz not null default now()
@@ -157,11 +161,9 @@ create policy "question_bank_select_all" on public.question_bank for select usin
 create policy "questionnaires_select_all" on public.questionnaires for select using (true);
 create policy "questionnaires_insert_own" on public.questionnaires
   for insert to authenticated with check (owner_id = auth.uid());
--- ⚠️ 추가(2026-09): "질문 삭제" 기능을 위한 정책입니다. 본인 소유 질문지만 삭제할 수
--- 있고, responses.questionnaire_id가 questionnaires(id)를 on delete cascade로
--- 참조하고 있어서 이 질문지에 달린 답변들도 DB에서 함께 자동 삭제됩니다 (복구 불가).
-create policy "questionnaires_delete_own" on public.questionnaires
-  for delete to authenticated using (owner_id = auth.uid());
+-- ⚠️(2026-09): "질문 삭제"는 더 이상 실제 DELETE가 아니라 아래 user_delete_own_questionnaire
+-- RPC로 visibility만 바꾸는 소프트 삭제입니다 — 그래서 여기엔 delete 정책/권한을 두지
+-- 않았습니다 (RPC가 SECURITY DEFINER라 별도 grant 없이도 동작해요).
 
 create policy "responses_insert_anyone" on public.responses
   for insert with check (visibility = 'active');
@@ -191,7 +193,6 @@ create policy "daily_visits_select_admin" on public.daily_visits
 grant usage on schema public to anon, authenticated;
 grant select on public.categories, public.question_bank, public.questionnaires to anon, authenticated;
 grant insert on public.questionnaires to authenticated;
-grant delete on public.questionnaires to authenticated;
 grant insert on public.responses to anon, authenticated;
 grant select on public.responses to anon, authenticated;
 grant select on public.profiles, public.admin_allowlist, public.admin_audit_log to authenticated;
@@ -352,6 +353,35 @@ begin
   insert into public.admin_audit_log (actor_id, actor_label, action, target_type, target_id, note)
   values (auth.uid(), '유저 본인', 'hide_response', 'response', p_response_id::text,
     '유저가 자신의 화면에서 답변을 삭제함 (관리자에게는 계속 조회/복구 가능)');
+end;
+$$;
+
+-- 본인 질문지 "삭제" — 실제로는 숨김 처리만 합니다 (관리자는 계속 조회/복구 가능).
+create or replace function public.user_delete_own_questionnaire(p_questionnaire_id uuid)
+returns void language plpgsql security definer set search_path = public as $$
+begin
+  if not exists (
+    select 1 from public.questionnaires
+    where id = p_questionnaire_id and owner_id = auth.uid()
+  ) then
+    raise exception '본인 질문지만 삭제할 수 있습니다';
+  end if;
+  update public.questionnaires set visibility = 'hidden_by_user' where id = p_questionnaire_id;
+  insert into public.admin_audit_log (actor_id, actor_label, action, target_type, target_id, note)
+  values (auth.uid(), '유저 본인', 'hide_questionnaire', 'questionnaire', p_questionnaire_id::text,
+    '유저가 자신의 화면에서 질문지를 삭제함 (관리자에게는 계속 조회/복구 가능)');
+end;
+$$;
+
+-- 관리자가 유저 대신 질문지를 복구합니다.
+create or replace function public.admin_restore_questionnaire(p_questionnaire_id uuid)
+returns void language plpgsql security definer set search_path = public as $$
+begin
+  if not public.is_admin() then raise exception '관리자만 가능합니다'; end if;
+  update public.questionnaires set visibility = 'active' where id = p_questionnaire_id;
+  insert into public.admin_audit_log (actor_id, actor_label, action, target_type, target_id)
+  values (auth.uid(), coalesce((select name from public.profiles where id = auth.uid()), '관리자'),
+    'restore_questionnaire', 'questionnaire', p_questionnaire_id::text);
 end;
 $$;
 

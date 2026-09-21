@@ -40,10 +40,13 @@ export async function publishQuestionnaire(creatorName: string, questions: strin
 
 export async function getQuestionnaire(id: string): Promise<PublishedQuestionnaire | null> {
   const supabase = createClient();
+  // ⚠️(2026-09): 질문자가 삭제한(visibility = 'hidden_by_user') 질문지는 답변자/공유
+  // 화면에서는 "없는 질문지"처럼 취급합니다 (관리자 페이지에서는 계속 조회/복구 가능).
   const { data } = await supabase
     .from("questionnaires")
     .select("id, creator_name, questions, created_at")
     .eq("id", id)
+    .eq("visibility", "active")
     .maybeSingle();
   if (!data) return null;
   return {
@@ -138,6 +141,7 @@ export async function getMyQuestionnaires(): Promise<MyQuestionnaireSummary[]> {
     .from("questionnaires")
     .select("id, questions, created_at")
     .eq("owner_id", user.id)
+    .eq("visibility", "active")
     .order("created_at", { ascending: false });
   if (!qns || qns.length === 0) return [];
 
@@ -194,21 +198,15 @@ export async function hideMyResponse(responseId: string) {
   if (error) throw error;
 }
 
-/** 질문지를 완전히 삭제합니다 (본인 소유만 가능). DB의 on delete cascade 설정으로
- * 이 질문지에 달린 답변들도 함께 삭제됩니다 — 복구할 수 없는 영구 삭제입니다. */
+/** 질문지를 "삭제"합니다 — 실제로는 완전히 지우지 않고 본인 화면에서만 숨깁니다.
+ * 관리자 페이지에서는 삭제된 뒤에도 계속 조회할 수 있고, 필요하면 복구할 수 있습니다.
+ * (2026-09: 예전엔 진짜 DELETE를 썼는데, RLS로 막히면 PostgREST가 에러 없이 "0건 삭제
+ * 성공"으로 응답해서 새로고침하면 다시 나타나는 버그가 있었습니다. 다른 숨김/복구 기능과
+ * 동일하게 SECURITY DEFINER RPC로 바꿔서 이 문제도 함께 해결했습니다.) */
 export async function deleteMyQuestionnaire(questionnaireId: string) {
   const supabase = createClient();
-  // ⚠️ 버그 수정(2026-09): RLS가 delete를 막으면 PostgREST는 에러 없이 "0건 삭제
-  // 성공"으로 응답합니다 — 그래서 화면에서는 지워진 것처럼 보이다가 새로고침하면
-  // 다시 나타나는 문제가 있었습니다. .select()로 실제 지워진 행을 돌려받아서, 0건이면
-  // 직접 에러를 던지도록 고쳤습니다 (RLS 정책이 없으면 여기서 바로 실패가 보여요).
-  const { data, error } = await supabase
-    .from("questionnaires")
-    .delete()
-    .eq("id", questionnaireId)
-    .select("id");
+  const { error } = await supabase.rpc("user_delete_own_questionnaire", {
+    p_questionnaire_id: questionnaireId,
+  });
   if (error) throw error;
-  if (!data || data.length === 0) {
-    throw new Error("삭제 권한이 없거나 이미 삭제된 질문지예요.");
-  }
 }

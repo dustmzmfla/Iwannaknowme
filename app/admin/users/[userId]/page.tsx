@@ -10,6 +10,7 @@ import {
   hideResponseAsAdmin,
   restoreResponse,
   purgeResponse,
+  restoreQuestionnaire,
   setUserSuspended,
   listAuditLog,
   addAdmin,
@@ -105,6 +106,7 @@ export default function AdminUserDetailPage() {
   const [questionnairesPage, setQuestionnairesPage] = useState(1);
   const [responsesPage, setResponsesPage] = useState(1);
   const [selectedResponse, setSelectedResponse] = useState<QuestionResponse | null>(null);
+  const [restoringQuestionnaireId, setRestoringQuestionnaireId] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -184,6 +186,19 @@ export default function AdminUserDetailPage() {
   function selectQuestionnaire(id: string) {
     setSelectedQuestionnaireId(id);
     setResponsesPage(1);
+  }
+
+  async function handleRestoreQuestionnaire(id: string) {
+    if (restoringQuestionnaireId) return;
+    setRestoringQuestionnaireId(id);
+    try {
+      await restoreQuestionnaire(id);
+      await refresh();
+    } catch {
+      alert("복구하지 못했어요. 잠시 후 다시 시도해줘.");
+    } finally {
+      setRestoringQuestionnaireId(null);
+    }
   }
 
   return (
@@ -295,6 +310,7 @@ export default function AdminUserDetailPage() {
                     <th className="px-4 py-2.5 font-medium">생성일자</th>
                     <th className="px-4 py-2.5 font-medium">질문 수</th>
                     <th className="px-4 py-2.5 font-medium">답변 수</th>
+                    <th className="px-4 py-2.5 font-medium">상태</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-black/5">
@@ -303,6 +319,7 @@ export default function AdminUserDetailPage() {
                       (r) => r.visibility !== "purged"
                     ).length;
                     const isSelected = q.id === selectedQuestionnaireId;
+                    const isDeleted = q.visibility === "hidden_by_user";
                     return (
                       <tr
                         key={q.id}
@@ -328,6 +345,30 @@ export default function AdminUserDetailPage() {
                         </td>
                         <td className="px-4 py-2.5 text-black/60">{q.questions.length}개</td>
                         <td className="px-4 py-2.5 text-black/60">{responseCount}개</td>
+                        <td className="px-4 py-2.5">
+                          {isDeleted ? (
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs font-bold text-ink-soft bg-black/10 px-2 py-0.5 rounded-full whitespace-nowrap">
+                                삭제됨 (질문자가 삭제)
+                              </span>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleRestoreQuestionnaire(q.id);
+                                }}
+                                disabled={restoringQuestionnaireId === q.id}
+                                className="text-xs font-bold px-2.5 py-1 rounded-lg bg-ink text-paper-card disabled:opacity-50"
+                              >
+                                {restoringQuestionnaireId === q.id ? "복구 중..." : "복구"}
+                              </button>
+                            </div>
+                          ) : (
+                            <span className="text-xs font-bold text-green-700 bg-green-100 px-2 py-0.5 rounded-full">
+                              정상
+                            </span>
+                          )}
+                        </td>
                       </tr>
                     );
                   })}

@@ -25,6 +25,10 @@ export interface AppUser {
 }
 
 /** 한 사용자가 만든 질문지 */
+export type QuestionnaireVisibility =
+  | "active" // 정상 노출
+  | "hidden_by_user"; // 질문자가 "질문 삭제" 클릭 → 질문자 화면에서만 숨김, 관리자는 계속 조회/복구 가능
+
 export interface Questionnaire {
   id: string;
   ownerId: string; // AppUser.id
@@ -33,6 +37,7 @@ export interface Questionnaire {
   // 답변과 질문이 서로 안 맞게 꼬이기 때문입니다. 새 질문지가 필요하면 새로 만들어야 합니다.
   relationRequired: true; // 항상 true, 스키마 문서화 목적
   finalMessageRequired: true;
+  visibility: QuestionnaireVisibility;
   createdAt: string;
 }
 
