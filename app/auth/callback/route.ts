@@ -1,9 +1,12 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 
-const CONSENT_COOKIE = "iwkm_pending_consent";
-
+/**
+ * 카카오 로그인 콜백. 세션을 교환한 뒤, 이 유저가 이미 약관에 동의한 "기존 회원"인지
+ * "이번이 첫 로그인"인지 profiles.terms_agreed_at 유무로 판단합니다.
+ * - 기존 회원: 곧바로 next(기본 "/")로 랜딩 — 매번 동의 화면이 뜨던 문제를 해결합니다.
+ * - 첫 로그인: /login/consent 에서 딱 한 번만 약관 동의를 받은 뒤 next로 보냅니다.
+ */
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
@@ -14,28 +17,24 @@ export async function GET(request: Request) {
     const { error } = await supabase.auth.exchangeCodeForSession(code);
 
     if (!error) {
-      const cookieStore = await cookies();
-      const raw = cookieStore.get(CONSENT_COOKIE)?.value;
-      if (raw) {
-        try {
-          const consent = JSON.parse(decodeURIComponent(raw)) as {
-            termsAgreed: boolean;
-            privacyRequiredAgreed: boolean;
-            privacyOptionalAgreed: boolean;
-            birthDate: string | null;
-          };
-          await supabase.rpc("complete_signup", {
-            p_terms_agreed: consent.termsAgreed,
-            p_privacy_required_agreed: consent.privacyRequiredAgreed,
-            p_privacy_optional_agreed: consent.privacyOptionalAgreed,
-            p_birth_date: consent.birthDate,
-          });
-        } catch {
-          // 쿠키가 깨졌으면 무시
-        } finally {
-          cookieStore.delete(CONSENT_COOKIE);
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (user) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("terms_agreed_at")
+          .eq("id", user.id)
+          .maybeSingle();
+
+        if (!profile?.terms_agreed_at) {
+          return NextResponse.redirect(
+            `${origin}/login/consent?next=${encodeURIComponent(next)}`
+          );
         }
       }
+
       return NextResponse.redirect(`${origin}${next}`);
     }
   }
