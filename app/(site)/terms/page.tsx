@@ -12,7 +12,7 @@ export default function TermsPage() {
 
       <h2 className="font-bold mt-5 mb-2">제1조 (목적)</h2>
       <p>
-        이 약관은 &lsquo;나를 알려줘&rsquo;(이하 &lsquo;서비스&rsquo;)이 제공하는
+        이 약관은 &lsquo;내가 누구게?&rsquo;(이하 &lsquo;서비스&rsquo;)이 제공하는
         익명 질문지 서비스의 이용조건 및 절차, 이용자와 서비스 운영자의 권리·의무
         및 책임사항을 규정함을 목적으로 합니다.
       </p>

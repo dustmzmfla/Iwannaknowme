@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { BackButton } from "@/components/ui/BackButton";
-import { StepBar } from "@/components/ui/StepBar";
 import { Button } from "@/components/ui/Button";
 import {
   ConsentCheckboxes,
@@ -95,7 +94,6 @@ export default function LoginPage() {
   return (
     <section className="flex flex-col flex-1 px-[22px] py-[26px]">
       <BackButton fallbackHref="/" />
-      <StepBar step={1} />
       <h2 className="font-display text-2xl mb-1.5">카카오로 3초만에 시작</h2>
       <p className="text-[13.5px] text-ink-soft mb-5 leading-relaxed">
         카카오 계정으로 로그인하면 프로필 사진과 닉네임을 그대로 가져와서 질문지에

@@ -82,16 +82,36 @@ create table if not exists public.admin_audit_log (
   actor_id uuid,
   actor_label text not null,
   action text not null,
-  target_type text not null check (target_type in ('response', 'user', 'admin')),
+  target_type text not null check (target_type in ('response', 'user', 'admin', 'inquiry')),
   target_id text not null,
   note text,
   created_at timestamptz not null default now()
+);
+
+-- ── inquiries (문의사항 게시판) ──────────────────────────────────────────
+-- 비밀글(is_secret) 노출 제어는 RLS(inquiries_select_visible)가 DB에서 강제합니다.
+-- 답변(admin_reply)은 컬럼 단위 grant로 일반 유저의 직접 수정이 막혀 있고,
+-- admin_reply_inquiry RPC(SECURITY DEFINER)를 통해서만 관리자가 답변을 남길 수 있습니다.
+create table if not exists public.inquiries (
+  id uuid primary key default gen_random_uuid(),
+  author_id uuid not null references public.profiles(id) on delete cascade,
+  author_name text not null,
+  title text not null,
+  content text not null,
+  is_secret boolean not null default false,
+  admin_reply text,
+  replied_by uuid references public.profiles(id) on delete set null,
+  replied_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
 );
 
 create index if not exists idx_question_bank_category on public.question_bank(category_id);
 create index if not exists idx_questionnaires_owner on public.questionnaires(owner_id);
 create index if not exists idx_responses_questionnaire on public.responses(questionnaire_id);
 create index if not exists idx_audit_log_target on public.admin_audit_log(target_id);
+create index if not exists idx_inquiries_author on public.inquiries(author_id);
+create index if not exists idx_inquiries_created on public.inquiries(created_at desc);
 
 -- ============================================================================
 -- Row Level Security
@@ -103,6 +123,7 @@ alter table public.question_bank enable row level security;
 alter table public.questionnaires enable row level security;
 alter table public.responses enable row level security;
 alter table public.admin_audit_log enable row level security;
+alter table public.inquiries enable row level security;
 
 create or replace function public.is_admin()
 returns boolean
@@ -142,12 +163,27 @@ create policy "responses_select_owner_or_admin" on public.responses
     )
   );
 
+create policy "inquiries_select_visible" on public.inquiries
+  for select using (
+    not is_secret or author_id = auth.uid() or public.is_admin()
+  );
+create policy "inquiries_insert_own" on public.inquiries
+  for insert to authenticated with check (author_id = auth.uid());
+create policy "inquiries_update_own" on public.inquiries
+  for update using (author_id = auth.uid()) with check (author_id = auth.uid());
+create policy "inquiries_delete_own_or_admin" on public.inquiries
+  for delete using (author_id = auth.uid() or public.is_admin());
+
 grant usage on schema public to anon, authenticated;
 grant select on public.categories, public.question_bank, public.questionnaires to anon, authenticated;
 grant insert on public.questionnaires to authenticated;
 grant insert on public.responses to anon, authenticated;
 grant select on public.responses to anon, authenticated;
 grant select on public.profiles, public.admin_allowlist, public.admin_audit_log to authenticated;
+grant select on public.inquiries to authenticated;
+grant insert on public.inquiries to authenticated;
+grant delete on public.inquiries to authenticated;
+grant update (title, content, is_secret, updated_at) on public.inquiries to authenticated;
 
 -- ============================================================================
 -- 신규 가입 시 profiles 자동 생성 + admin_allowlist 동기화
@@ -313,6 +349,20 @@ begin
 end;
 $$;
 
+-- 관리자 전용 — 문의에 답변을 등록/수정합니다 (admin_reply는 컬럼 grant로 직접 update가 막혀 있음).
+create or replace function public.admin_reply_inquiry(p_inquiry_id uuid, p_reply text)
+returns void language plpgsql security definer set search_path = public as $$
+begin
+  if not public.is_admin() then raise exception '관리자만 가능합니다'; end if;
+  update public.inquiries
+    set admin_reply = p_reply, replied_by = auth.uid(), replied_at = now()
+    where id = p_inquiry_id;
+  insert into public.admin_audit_log (actor_id, actor_label, action, target_type, target_id)
+  values (auth.uid(), coalesce((select name from public.profiles where id = auth.uid()), '관리자'),
+    'reply_inquiry', 'inquiry', p_inquiry_id::text);
+end;
+$$;
+
 create or replace function public.admin_add_admin(p_kakao_id text, p_label text)
 returns void language plpgsql security definer set search_path = public as $$
 begin
@@ -392,6 +442,7 @@ $$;
 
 grant execute on all functions in schema public to authenticated;
 grant execute on function public.user_mark_response_read(uuid) to authenticated;
+grant execute on function public.admin_reply_inquiry(uuid, text) to authenticated;
 
 -- ============================================================================
 -- 초기 카테고리 시드 (lib/questionPool.ts 기본 데이터와 동일한 6개 카테고리)

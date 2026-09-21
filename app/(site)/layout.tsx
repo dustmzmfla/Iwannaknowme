@@ -1,12 +1,13 @@
 import type { ReactNode } from "react";
-import { AdminQuickLink } from "@/components/layout/AdminQuickLink";
+import { SiteHeader } from "@/components/layout/SiteHeader";
 
 // 질문자/답변자 화면 전용 레이아웃 — 데스크톱에서도 폰 화면처럼 좁고 긴 카드로 보여줍니다.
-// 햄버거 메뉴는 제거했고, 관리자 계정으로 로그인했을 때만 같은 자리에 관리자 바로가기 버튼이 뜹니다.
+// 로그인한 사람에게는 우측 상단 햄버거 버튼(SiteHeader)이 뜨고, 관리자 계정이면 그 안의
+// 네비게이션 메뉴에 "관리자 페이지" 항목이 추가로 보입니다.
 export default function SiteLayout({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-screen flex justify-center">
-      <AdminQuickLink />
+      <SiteHeader />
       <div className="w-full max-w-[460px] min-h-screen flex flex-col">{children}</div>
     </div>
   );

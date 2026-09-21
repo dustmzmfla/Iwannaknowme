@@ -4,10 +4,10 @@ export default function AboutPage() {
   return (
     <section className="flex flex-col flex-1 px-[22px] py-[26px] text-sm leading-relaxed">
       <BackButton fallbackHref="/" />
-      <h1 className="font-display text-2xl mb-4">나를 알려줘 서비스 소개</h1>
+      <h1 className="font-display text-2xl mb-4">내가 누구게? 서비스 소개</h1>
 
       <p className="mb-4">
-        &lsquo;나를 알려줘&rsquo;는 친구, 지인, 연인처럼 가까운 사이에서도 막상
+        &lsquo;내가 누구게?&rsquo;는 친구, 지인, 연인처럼 가까운 사이에서도 막상
         얼굴 보고는 묻기 어려운 질문들을 익명(또는 닉네임)으로 주고받을 수 있게
         해주는 질문지 서비스입니다. 질문을 만든 사람이 카카오 계정으로 로그인해
         궁금한 질문을 3~10개 고르고, 생성된 링크를 지인에게 공유하면, 링크를

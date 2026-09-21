@@ -109,6 +109,12 @@ export function NavDrawer({
           >
             💌 받은 답변 보기
           </button>
+          <button
+            onClick={() => go("/inquiries")}
+            className="text-left font-bold text-[14.5px] py-3 px-3 rounded-xl hover:bg-black/5 active:bg-black/10 transition"
+          >
+            📮 문의하기
+          </button>
           {isAdmin && (
             <button
               onClick={() => go("/admin")}

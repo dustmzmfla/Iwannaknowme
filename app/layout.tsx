@@ -31,17 +31,17 @@ const searchConsoleVerification = process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATI
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
-    default: "나를 알려줘 — I wanna know me",
-    template: "%s | 나를 알려줘",
+    default: "내가 누구게? — Who Am I?",
+    template: "%s | 내가 누구게?",
   },
   description:
-    "친한 친구에게도 차마 못 물어본 질문을 익명으로 던지고 솔직한 답을 받아보는 질문지 서비스, 나를 알려줘.",
-  keywords: ["나를 알려줘", "익명 질문", "친구 질문", "질문지 만들기", "I wanna know me"],
+    "친한 친구에게도 차마 못 물어본 질문을 익명으로 던지고 솔직한 답을 받아보는 질문지 서비스, 내가 누구게?.",
+  keywords: ["내가 누구게?", "익명 질문", "친구 질문", "질문지 만들기", "Who Am I?"],
   openGraph: {
-    title: "나를 알려줘 — I wanna know me",
+    title: "내가 누구게? — Who Am I?",
     description: "친한 친구에게도 차마 못 물어본 질문을 익명으로 던지고 솔직한 답을 받아보세요.",
     url: siteUrl,
-    siteName: "나를 알려줘",
+    siteName: "내가 누구게?",
     locale: "ko_KR",
     type: "website",
   },

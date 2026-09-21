@@ -76,22 +76,25 @@ export default function IntroPage() {
           <h1 className="glass-title mb-2.5">
             <span className="text-[#2B2320]">
               <span className="glass-char" style={{ animationDelay: "0s" }}>
-                나
+                내
               </span>
               <span className="glass-char" style={{ animationDelay: ".06s" }}>
-                를
+                가
               </span>
             </span>
             <br />
             <span className="text-[#E85D4A]">
               <span className="glass-char" style={{ animationDelay: ".12s" }}>
-                알
+                누
               </span>
               <span className="glass-char" style={{ animationDelay: ".18s" }}>
-                려
+                구
               </span>
               <span className="glass-char" style={{ animationDelay: ".24s" }}>
-                줘
+                게
+              </span>
+              <span className="glass-char" style={{ animationDelay: ".3s" }}>
+                ?
               </span>
             </span>
           </h1>

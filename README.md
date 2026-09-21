@@ -1,4 +1,4 @@
-# 나를 알려줘 (I wanna know me) — React / TypeScript / Tailwind / Supabase
+# 내가 누구게? (Who Am I?) — React / TypeScript / Tailwind / Supabase
 
 Next.js(App Router) + TypeScript + Tailwind CSS + Supabase(카카오 로그인, DB) 버전입니다.
 
@@ -106,7 +106,7 @@ supabase/schema.sql       테이블 + RLS + RPC + 트리거 + 시드 데이터 (
 
 ## 최근 반영된 변경 사항
 
-- 프로젝트 타이틀을 &lsquo;나를 알려줘&rsquo;로 변경
+- 프로젝트 타이틀을 &lsquo;내가 누구게?&rsquo;로 변경
 - 질문 미리보기 기능 제거 (build/final에서 바로 발행)
 - 관계 선택지에 &lsquo;절친&rsquo; 추가 (타입/DB 제약조건/응답 화면 모두 반영)
 - &lsquo;패션&rsquo; 카테고리 추가, &lsquo;외모&rsquo; 카테고리 질문 재작성

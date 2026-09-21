@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { BackButton } from "@/components/ui/BackButton";
-import { StepBar } from "@/components/ui/StepBar";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { readJSON } from "@/lib/storage";
@@ -38,7 +37,6 @@ export default function FinalSetupPage() {
   return (
     <section className="flex flex-col flex-1 px-[22px] py-[26px]">
       <BackButton fallbackHref="/build" />
-      <StepBar step={3} />
       <h2 className="font-display text-2xl mb-1.5">이제 마지막 단계야</h2>
       <p className="text-[13.5px] text-ink-soft mb-5 leading-relaxed">
         답변자한테는 이 두 질문이 자동으로 마지막에 나가. 절대 못 건너뛰어 — 직접

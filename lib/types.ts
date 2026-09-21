@@ -95,6 +95,21 @@ export interface QuestionBankItem {
   createdAt: string;
 }
 
+/** 문의사항 게시판의 글 하나. */
+export interface Inquiry {
+  id: string;
+  authorId: string;
+  authorName: string; // 작성 시점 닉네임 스냅샷
+  title: string;
+  content: string;
+  isSecret: boolean; // true면 작성자 본인과 관리자만 열람 가능 (RLS로 강제됨)
+  adminReply: string | null;
+  repliedBy: string | null;
+  repliedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
 /** 관리자로 등록된 카카오 계정 — 이 목록에 있는 kakao_id로 로그인하면 자동으로 role="admin"이 됩니다. */
 export interface AdminAllowlistEntry {
   kakaoId: string;

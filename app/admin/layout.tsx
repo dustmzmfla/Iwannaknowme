@@ -12,7 +12,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
       <header className="bg-ink text-paper-card px-6 py-4 flex items-center justify-between flex-wrap gap-3">
         <div className="flex items-center gap-5 flex-wrap">
           <Link href="/admin" className="font-display text-lg">
-            나를 알려줘 관리자
+            내가 누구게? 관리자
           </Link>
           <nav className="flex items-center gap-4 text-sm font-bold">
             <Link href="/admin" className="opacity-80 hover:opacity-100">
