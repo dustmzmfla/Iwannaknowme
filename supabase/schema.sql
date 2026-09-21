@@ -157,6 +157,11 @@ create policy "question_bank_select_all" on public.question_bank for select usin
 create policy "questionnaires_select_all" on public.questionnaires for select using (true);
 create policy "questionnaires_insert_own" on public.questionnaires
   for insert to authenticated with check (owner_id = auth.uid());
+-- ⚠️ 추가(2026-09): "질문 삭제" 기능을 위한 정책입니다. 본인 소유 질문지만 삭제할 수
+-- 있고, responses.questionnaire_id가 questionnaires(id)를 on delete cascade로
+-- 참조하고 있어서 이 질문지에 달린 답변들도 DB에서 함께 자동 삭제됩니다 (복구 불가).
+create policy "questionnaires_delete_own" on public.questionnaires
+  for delete to authenticated using (owner_id = auth.uid());
 
 create policy "responses_insert_anyone" on public.responses
   for insert with check (visibility = 'active');
@@ -186,6 +191,7 @@ create policy "daily_visits_select_admin" on public.daily_visits
 grant usage on schema public to anon, authenticated;
 grant select on public.categories, public.question_bank, public.questionnaires to anon, authenticated;
 grant insert on public.questionnaires to authenticated;
+grant delete on public.questionnaires to authenticated;
 grant insert on public.responses to anon, authenticated;
 grant select on public.responses to anon, authenticated;
 grant select on public.profiles, public.admin_allowlist, public.admin_audit_log to authenticated;

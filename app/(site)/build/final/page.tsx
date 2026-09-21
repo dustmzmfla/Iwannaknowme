@@ -1,83 +1,17 @@
 "use client";
 
-import { useEffect, useState } from "react";
+// ⚠️ 이 단계는 더 이상 사용하지 않습니다 (2026-09). 질문을 만드는 사람은 나와의
+// 관계/하고 싶은 말을 적을 필요가 없어서(그건 답변자 몫이라), /build의 "다음" 버튼이
+// 이제 여기를 거치지 않고 바로 질문지를 발행한 뒤 /share/[id]로 이동합니다.
+// 삭제 권한이 없어 파일 자체는 지우지 못했지만, 어디서도 이 라우트로 링크하지
+// 않으므로 실수로 들어온 경우에만 /build로 돌려보냅니다.
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { BackButton } from "@/components/ui/BackButton";
-import { Card } from "@/components/ui/Card";
-import { Button } from "@/components/ui/Button";
-import { readJSON } from "@/lib/storage";
-import { publishQuestionnaire } from "@/lib/creatorFlow";
-import { MIN_QUESTIONS } from "@/lib/questionPool";
-import { useAuth } from "@/lib/auth/AuthProvider";
 
-export default function FinalSetupPage() {
+export default function RemovedFinalStepPage() {
   const router = useRouter();
-  const { profile } = useAuth();
-  const [selected, setSelected] = useState<string[]>([]);
-  const [publishing, setPublishing] = useState(false);
-  const [error, setError] = useState("");
-
   useEffect(() => {
-    setSelected(readJSON<string[]>("iwkm_draft_selected", []));
-  }, []);
-
-  async function handlePublish() {
-    if (selected.length < MIN_QUESTIONS || publishing) return;
-    setPublishing(true);
-    setError("");
-    try {
-      const id = await publishQuestionnaire(profile?.name ?? "친구", selected);
-      router.push(`/share/${id}`);
-    } catch {
-      setError("질문지를 발행하지 못했어요. 잠시 후 다시 시도해줘.");
-      setPublishing(false);
-    }
-  }
-
-  return (
-    <section className="flex flex-col flex-1 px-[22px] py-[26px]">
-      <BackButton fallbackHref="/build" />
-      <h2 className="font-display text-2xl mb-1.5">이제 마지막 단계야</h2>
-      <p className="text-[13.5px] text-ink-soft mb-5 leading-relaxed">
-        답변자한테는 이 두 질문이 자동으로 마지막에 나가. 절대 못 건너뛰어 — 직접
-        눌러봐도 돼.
-      </p>
-
-      <Card>
-        <div className="text-[12.5px] font-bold text-ink-soft mb-3">필수 질문 ①</div>
-        <label className="block text-[13px] text-ink-soft mb-2">
-          나와의 관계는 솔직히 어느 정도인 것 같아?
-        </label>
-        <select className="w-full bg-white border border-black/15 rounded-xl px-3.5 py-3 font-bold">
-          <option value="" disabled>
-            선택해줘
-          </option>
-          <option>악연</option>
-          <option>지인</option>
-          <option>친구</option>
-          <option>절친</option>
-          <option>인연</option>
-        </select>
-      </Card>
-
-      <Card>
-        <div className="text-[12.5px] font-bold text-ink-soft mb-3">필수 질문 ②</div>
-        <label className="block text-[13px] text-ink-soft mb-2">
-          마지막으로 나에게 하고 싶은 말
-        </label>
-        <textarea
-          placeholder="진심을 담아 써줘"
-          className="w-full bg-white border border-black/15 rounded-xl px-3.5 py-3 resize-none min-h-[90px]"
-        />
-      </Card>
-
-      {error && <p className="text-sm text-accent mt-2">{error}</p>}
-
-      <div className="mt-auto pt-5">
-        <Button onClick={handlePublish} disabled={selected.length < MIN_QUESTIONS || publishing}>
-          {publishing ? "발행 중..." : "질문지 완성하기"}
-        </Button>
-      </div>
-    </section>
-  );
+    router.replace("/build");
+  }, [router]);
+  return null;
 }

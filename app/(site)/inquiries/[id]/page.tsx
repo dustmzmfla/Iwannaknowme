@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
 import { BackButton } from "@/components/ui/BackButton";
 import { Button } from "@/components/ui/Button";
 import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
@@ -9,7 +9,12 @@ import { useAuth } from "@/lib/auth/AuthProvider";
 import { deleteInquiry, getInquiry, replyToInquiry, updateInquiry } from "@/lib/inquiries";
 import type { Inquiry } from "@/lib/types";
 
-export default function InquiryDetailPage({ params }: { params: { id: string } }) {
+// Next.js 15에서 params가 Promise가 되면서 페이지 컴포넌트 prop으로 직접
+// 받으면 "params.id를 React.use()로 풀어써야 한다"는 경고가 뜹니다 — 이 페이지는
+// 클라이언트 컴포넌트라 prop 대신 useParams() 훅으로 라우트 파라미터를 읽어서
+// 경고 없이 동일하게 동작하도록 했습니다.
+export default function InquiryDetailPage() {
+  const params = useParams<{ id: string }>();
   const router = useRouter();
   const { profile, isAdmin } = useAuth();
 

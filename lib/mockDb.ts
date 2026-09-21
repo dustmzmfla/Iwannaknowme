@@ -133,6 +133,20 @@ export async function getQuestionnaireByOwner(ownerId: string): Promise<Question
   return data ? rowToQuestionnaire(data) : undefined;
 }
 
+/** 한 유저가 "새 질문 생성"으로 만든 질문지(메인 질문)를 전부 최신순으로 가져옵니다.
+ * 유저 한 명이 질문지를 여러 개 만들 수 있어서, 관리자 화면에서 하위 질문/답변이
+ * 서로 다른 질문지끼리 섞이지 않도록 질문지 단위로 구분해서 보여줄 때 씁니다. */
+export async function listQuestionnairesByOwner(ownerId: string): Promise<Questionnaire[]> {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("questionnaires")
+    .select("*")
+    .eq("owner_id", ownerId)
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return (data ?? []).map(rowToQuestionnaire);
+}
+
 export async function listResponses(questionnaireId: string): Promise<QuestionResponse[]> {
   const supabase = createClient();
   const { data, error } = await supabase

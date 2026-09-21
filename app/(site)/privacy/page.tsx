@@ -6,12 +6,6 @@ export default function PrivacyPolicyPage() {
       <BackButton fallbackHref="/login" />
       <h1 className="font-display text-2xl mb-4">개인정보처리방침</h1>
 
-      <p className="mb-4 text-ink-soft">
-        ⚠️ 아래 내용은 개인정보보호법 제15조가 요구하는 고지 항목(수집 목적, 수집
-        항목, 보유기간, 동의 거부 권리)을 반영한 <b>템플릿</b>입니다. 실제 서비스
-        출시 전에는 반드시 변호사 또는 개인정보보호위원회 자료로 최종 검토하세요.
-      </p>
-
       <h2 className="font-bold mt-5 mb-2">1. 수집하는 개인정보 항목</h2>
       <table className="w-full text-xs border-collapse mb-2">
         <thead>
@@ -103,7 +97,13 @@ export default function PrivacyPolicyPage() {
       </p>
 
       <h2 className="font-bold mt-5 mb-2">8. 개인정보 보호책임자</h2>
-      <p>담당자: (서비스 운영자 이름) / 이메일: (연락처 입력)</p>
+      <p>
+        담당자: 스해누 (해누소프트웨어, 사업자등록번호 111-37-34863) / 이메일:{" "}
+        haenooss@gmail.com
+      </p>
+      <p className="text-xs text-ink-soft mt-1">
+        개인정보 관련 문의·열람·정정·삭제 요청은 위 이메일로 접수해 주세요.
+      </p>
 
       <h2 className="font-bold mt-5 mb-2">9. 고지의 의무</h2>
       <p>이 개인정보처리방침은 최초 공개일부터 적용되며, 내용 추가·삭제 및 수정이 있을 시 시행일 최소 7일 전부터 공지사항을 통해 고지할 것입니다.</p>

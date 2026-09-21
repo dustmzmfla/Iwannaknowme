@@ -15,6 +15,7 @@ import {
 } from "@/lib/questionPool";
 import { readJSON, writeJSON } from "@/lib/storage";
 import { useAuth } from "@/lib/auth/AuthProvider";
+import { publishQuestionnaire } from "@/lib/creatorFlow";
 import type { Category, QuestionPool } from "@/lib/types";
 
 export default function BuildPage() {
@@ -24,6 +25,8 @@ export default function BuildPage() {
   const [pool, setPool] = useState<QuestionPool>(QUESTION_POOL);
   const [category, setCategory] = useState<Category>(CATEGORIES[0]);
   const [selected, setSelected] = useState<string[]>([]);
+  const [publishing, setPublishing] = useState(false);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     setSelected(readJSON<string[]>("iwkm_draft_selected", []));
@@ -58,6 +61,22 @@ export default function BuildPage() {
   const canProceed = selected.length >= MIN_QUESTIONS;
   const name = authLoading ? "" : profile?.name ?? "친구";
   const questionsInCategory = pool[category] ?? [];
+
+  // 질문을 만드는 사람은 나와의 관계/하고 싶은 말을 적을 필요가 없어서(그건 답변자
+  // 몫이에요), 예전처럼 "다음" 눌러서 확인 단계(/build/final)로 보내지 않고 여기서
+  // 바로 발행하고 완성 화면(/share/[id])으로 넘어갑니다.
+  async function handleNext() {
+    if (!canProceed || publishing) return;
+    setPublishing(true);
+    setError("");
+    try {
+      const id = await publishQuestionnaire(profile?.name ?? "친구", selected);
+      router.push(`/share/${id}`);
+    } catch {
+      setError("질문지를 발행하지 못했어요. 잠시 후 다시 시도해줘.");
+      setPublishing(false);
+    }
+  }
 
   return (
     <section className="flex flex-col flex-1 px-[22px] py-[26px]">
@@ -120,9 +139,11 @@ export default function BuildPage() {
         <SelectedQuestionList items={selected} onReorder={reorder} onRemove={toggle} />
       </Card>
 
+      {error && <p className="text-sm text-accent mt-2">{error}</p>}
+
       <div className="mt-auto pt-5">
-        <Button disabled={!canProceed} onClick={() => router.push("/build/final")}>
-          다음
+        <Button disabled={!canProceed || publishing} onClick={handleNext}>
+          {publishing ? "만드는 중..." : "질문지 완성하기"}
         </Button>
       </div>
     </section>

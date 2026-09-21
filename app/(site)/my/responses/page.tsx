@@ -3,8 +3,9 @@
 import { useCallback, useEffect, useState } from "react";
 import { BackButton } from "@/components/ui/BackButton";
 import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
-import { Button } from "@/components/ui/Button";
+import { useToast } from "@/components/ui/Toast";
 import {
+  deleteMyQuestionnaire,
   getMyQuestionnaires,
   getResponsesForQuestionnaire,
   hideMyResponse,
@@ -76,9 +77,13 @@ export default function MyResponsesPage() {
   const [hiding, setHiding] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+  const [confirmDeleteQnOpen, setConfirmDeleteQnOpen] = useState(false);
+  const [deletingQn, setDeletingQn] = useState(false);
 
   const [listPage, setListPage] = useState(1);
   const [respondentsPage, setRespondentsPage] = useState(1);
+
+  const { showToast } = useToast();
 
   const refreshList = useCallback(async () => {
     setLoadingList(true);
@@ -112,6 +117,7 @@ export default function MyResponsesPage() {
     }
     setCopiedId(questionnaireId);
     setTimeout(() => setCopiedId((prev) => (prev === questionnaireId ? null : prev)), 1600);
+    showToast("URL이 복사되었습니다.");
   }
 
   async function openResponse(r: QuestionResponse) {
@@ -165,6 +171,26 @@ export default function MyResponsesPage() {
       alert("삭제하지 못했어요. 잠시 후 다시 시도해줘.");
     } finally {
       setHiding(false);
+    }
+  }
+
+  async function handleDeleteQuestionnaire() {
+    if (!selectedQuestionnaire) return;
+    setDeletingQn(true);
+    try {
+      await deleteMyQuestionnaire(selectedQuestionnaire.id);
+      const deletedId = selectedQuestionnaire.id;
+      setQuestionnaires((prev) => prev.filter((q) => q.id !== deletedId));
+      backToList();
+      showToast("질문이 삭제되었습니다.");
+    } catch (err) {
+      // ⚠️ 진단용(2026-09): 실제 에러를 콘솔에 남기고, 알럿에도 짧게 보여줘서
+      // 다음 실패 때 원인을 바로 알 수 있게 했습니다.
+      console.error("질문 삭제 실패:", err);
+      const detail = err instanceof Error ? err.message : String(err);
+      alert(`삭제하지 못했어요. 잠시 후 다시 시도해줘.\n\n(진단 정보: ${detail})`);
+    } finally {
+      setDeletingQn(false);
     }
   }
 
@@ -344,16 +370,44 @@ export default function MyResponsesPage() {
           )}
 
           {/* 위쪽 버튼 하나로는 눈에 잘 안 띄어서 테이블 아래에도 링크를 노출합니다.
-              디자인 요소(카드/기울임/장식) 없이 텍스트 + 복사 버튼만 있는 단순한 UI예요. */}
+              링크 영역 자체가 버튼이에요 — 누르면 바로 복사되고 토스트로 알려줍니다. */}
           <div className="mt-2 mb-4">
             <div className="text-xs text-ink-soft mb-1.5">공유 링크</div>
-            <div className="text-[13px] font-bold break-all mb-3">
+            <button
+              type="button"
+              onClick={(e) => handleCopyLink(e, selectedQuestionnaire.id)}
+              className="w-full text-left border border-black/15 rounded-xl px-3.5 py-3 text-[13px] font-bold break-all active:bg-black/[0.04] transition-colors"
+            >
               {typeof window !== "undefined" ? window.location.origin : ""}/r/{selectedQuestionnaire.id}
-            </div>
-            <Button onClick={(e) => handleCopyLink(e, selectedQuestionnaire.id)}>
-              {copiedId === selectedQuestionnaire.id ? "복사됐어요!" : "링크 복사하기"}
-            </Button>
+            </button>
+            <p className="text-[11px] text-accent font-bold mt-1.5">
+              ※ 클릭하시면 URL이 자동으로 복사됩니다.
+            </p>
           </div>
+
+          {/* 링크 복사 버튼이 있던 자리 — 질문지 자체를 삭제하는 기능입니다. */}
+          <button
+            type="button"
+            onClick={() => setConfirmDeleteQnOpen(true)}
+            disabled={deletingQn}
+            className="w-full py-2.5 rounded-xl border border-accent/40 text-accent text-sm font-bold active:bg-accent/5 disabled:opacity-50 transition-colors mb-4"
+          >
+            {deletingQn ? "삭제 중..." : "질문 삭제"}
+          </button>
+
+          <ConfirmDialog
+            open={confirmDeleteQnOpen}
+            title="질문을 삭제하시겠습니까?"
+            description="질문을 삭제하면 해당 질문에 달린 답변들도 모두 삭제됩니다."
+            confirmLabel="예"
+            cancelLabel="아니오"
+            danger
+            onCancel={() => setConfirmDeleteQnOpen(false)}
+            onConfirm={() => {
+              setConfirmDeleteQnOpen(false);
+              handleDeleteQuestionnaire();
+            }}
+          />
         </>
       )}
 

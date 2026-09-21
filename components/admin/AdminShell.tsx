@@ -78,9 +78,11 @@ export function AdminShell({ adminLabel, children }: { adminLabel: string; child
   }
 
   return (
-    <div className="min-h-screen flex bg-[#F4F4F1] text-[#22201D]">
+    // 오른쪽 콘텐츠 칸 높이를 100vh로 고정하고, 그 안에서만 스크롤되게 합니다
+    // (h-screen + overflow-hidden으로 바깥은 고정, main에만 overflow-y-auto).
+    <div className="h-screen overflow-hidden flex bg-[#F4F4F1] text-[#22201D]">
       <aside
-        className={`shrink-0 bg-[#1E1B18] text-white/80 flex flex-col transition-[width] duration-150 ${
+        className={`shrink-0 bg-[#1E1B18] text-white/80 flex flex-col overflow-y-auto transition-[width] duration-150 ${
           collapsed ? "w-[60px]" : "w-[216px]"
         }`}
       >
@@ -124,7 +126,7 @@ export function AdminShell({ adminLabel, children }: { adminLabel: string; child
         </Link>
       </aside>
 
-      <div className="flex-1 min-w-0 flex flex-col">
+      <div className="flex-1 min-w-0 min-h-0 flex flex-col">
         <header className="h-14 shrink-0 bg-white border-b border-black/10 flex items-center gap-2 px-4">
           <button
             onClick={toggleCollapsed}
@@ -149,7 +151,7 @@ export function AdminShell({ adminLabel, children }: { adminLabel: string; child
           </button>
           <span className="text-sm font-bold text-black/70 ml-1 whitespace-nowrap">{adminLabel}</span>
         </header>
-        <main className="flex-1 p-6 overflow-x-auto">{children}</main>
+        <main className="flex-1 min-h-0 p-6 overflow-y-auto overflow-x-auto">{children}</main>
       </div>
     </div>
   );

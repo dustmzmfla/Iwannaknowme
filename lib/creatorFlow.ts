@@ -193,3 +193,22 @@ export async function hideMyResponse(responseId: string) {
   const { error } = await supabase.rpc("user_hide_own_response", { p_response_id: responseId });
   if (error) throw error;
 }
+
+/** 질문지를 완전히 삭제합니다 (본인 소유만 가능). DB의 on delete cascade 설정으로
+ * 이 질문지에 달린 답변들도 함께 삭제됩니다 — 복구할 수 없는 영구 삭제입니다. */
+export async function deleteMyQuestionnaire(questionnaireId: string) {
+  const supabase = createClient();
+  // ⚠️ 버그 수정(2026-09): RLS가 delete를 막으면 PostgREST는 에러 없이 "0건 삭제
+  // 성공"으로 응답합니다 — 그래서 화면에서는 지워진 것처럼 보이다가 새로고침하면
+  // 다시 나타나는 문제가 있었습니다. .select()로 실제 지워진 행을 돌려받아서, 0건이면
+  // 직접 에러를 던지도록 고쳤습니다 (RLS 정책이 없으면 여기서 바로 실패가 보여요).
+  const { data, error } = await supabase
+    .from("questionnaires")
+    .delete()
+    .eq("id", questionnaireId)
+    .select("id");
+  if (error) throw error;
+  if (!data || data.length === 0) {
+    throw new Error("삭제 권한이 없거나 이미 삭제된 질문지예요.");
+  }
+}

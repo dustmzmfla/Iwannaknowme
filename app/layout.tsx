@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { Gaegu, Noto_Sans_KR, Black_Han_Sans } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/lib/auth/AuthProvider";
+import { ToastProvider } from "@/components/ui/Toast";
 import { AdsenseScript } from "@/components/ads/AdsenseScript";
 import { VisitTracker } from "@/components/analytics/VisitTracker";
 
@@ -57,8 +58,10 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     <html lang="ko" className={`${gaegu.variable} ${noto.variable} ${blackHan.variable}`}>
       <body className="min-h-screen font-body text-ink antialiased">
         <AuthProvider>
-          <VisitTracker />
-          {children}
+          <ToastProvider>
+            <VisitTracker />
+            {children}
+          </ToastProvider>
         </AuthProvider>
         <AdsenseScript />
       </body>

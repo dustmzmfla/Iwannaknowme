@@ -5,11 +5,6 @@ export default function TermsPage() {
     <section className="flex flex-col flex-1 px-[22px] py-[26px] text-sm leading-relaxed">
       <BackButton fallbackHref="/login" />
       <h1 className="font-display text-2xl mb-4">이용약관</h1>
-      <p className="mb-4 text-ink-soft">
-        ⚠️ 아래 내용은 일반적인 이용약관 구성을 반영한 초안입니다. 실제 서비스
-        출시 전에는 반드시 법률 검토를 거쳐 확정하세요.
-      </p>
-
       <h2 className="font-bold mt-5 mb-2">제1조 (목적)</h2>
       <p>
         이 약관은 &lsquo;내가 누구게?&rsquo;(이하 &lsquo;서비스&rsquo;)이 제공하는
@@ -66,6 +61,12 @@ export default function TermsPage() {
         이 약관과 관련하여 분쟁이 발생할 경우, 이용자와 운영자는 대한민국 법령을
         준거법으로 하여 상호 협의하여 해결하며, 협의가 되지 않을 경우 관련 법령에
         따른 관할 법원에 제소할 수 있습니다.
+      </p>
+
+      <h2 className="font-bold mt-5 mb-2">제9조 (사업자 정보)</h2>
+      <p>
+        상호: 해누소프트웨어 · 대표: 스해누 · 사업자등록번호: 111-37-34863 ·
+        이메일: haenooss@gmail.com
       </p>
     </section>
   );

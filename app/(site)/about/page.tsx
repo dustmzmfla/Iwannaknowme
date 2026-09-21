@@ -44,8 +44,8 @@ export default function AboutPage() {
 
       <h2 className="font-bold mt-5 mb-2">운영자 정보 / 문의</h2>
       <p>
-        서비스 운영자: (운영자 이름을 입력하세요) · 문의: (연락처 이메일을
-        입력하세요)
+        상호: 해누소프트웨어 · 대표: 스해누 · 사업자등록번호: 111-37-34863 ·
+        문의: haenooss@gmail.com
       </p>
     </section>
   );

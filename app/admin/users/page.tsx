@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { listUsers, getUserStats, addAdmin, removeAdmin } from "@/lib/mockDb";
 import { Pagination } from "@/components/admin/Pagination";
 import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
@@ -15,6 +15,7 @@ function maskBirthDate(birth: string | null) {
 }
 
 export default function AdminUsersPage() {
+  const router = useRouter();
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [result, setResult] = useState<{ users: AppUser[]; total: number }>({
@@ -81,12 +82,20 @@ export default function AdminUsersPage() {
           </thead>
           <tbody className="divide-y divide-black/5">
             {result.users.map((u) => (
-              <tr key={u.id} className="hover:bg-black/[0.015]">
-                <td className="px-4 py-2.5">
-                  <Link href={`/admin/users/${u.id}`} className="font-bold text-accent hover:underline">
-                    {u.name}
-                  </Link>
-                </td>
+              <tr
+                key={u.id}
+                onClick={() => router.push(`/admin/users/${u.id}`)}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    router.push(`/admin/users/${u.id}`);
+                  }
+                }}
+                className="cursor-pointer hover:bg-black/[0.03]"
+              >
+                <td className="px-4 py-2.5 font-bold text-accent">{u.name}</td>
                 <td className="px-4 py-2.5 text-black/60">{u.kakaoId}</td>
                 <td className="px-4 py-2.5 text-black/60">{maskBirthDate(u.birthDate)}</td>
                 <td className="px-4 py-2.5 text-black/60">
@@ -101,7 +110,10 @@ export default function AdminUsersPage() {
                 </td>
                 <td className="px-4 py-2.5">
                   <button
-                    onClick={() => setAdminToggleTarget(u)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setAdminToggleTarget(u);
+                    }}
                     className={
                       u.role === "admin"
                         ? "text-xs font-bold text-white bg-ink px-2.5 py-1 rounded hover:opacity-80"
