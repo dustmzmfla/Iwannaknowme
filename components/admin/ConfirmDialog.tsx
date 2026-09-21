@@ -7,6 +7,7 @@ export function ConfirmDialog({
   title,
   description,
   confirmLabel,
+  cancelLabel = "취소",
   danger,
   requireTypedConfirm,
   onConfirm,
@@ -16,6 +17,7 @@ export function ConfirmDialog({
   title: string;
   description: string;
   confirmLabel: string;
+  cancelLabel?: string;
   danger?: boolean;
   requireTypedConfirm?: string;
   onConfirm: () => void;
@@ -29,10 +31,10 @@ export function ConfirmDialog({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-6">
       <div className="w-full max-w-sm bg-white rounded-2xl p-5 shadow-xl">
-        <h3 className={`font-bold text-lg mb-2 ${danger ? "text-accent" : "text-ink"}`}>
+        <h3 className={`font-bold text-lg mb-2 text-center ${danger ? "text-accent" : "text-ink"}`}>
           {title}
         </h3>
-        <p className="text-sm text-ink-soft mb-4 leading-relaxed">{description}</p>
+        <p className="text-sm text-ink-soft mb-4 leading-relaxed text-center">{description}</p>
 
         {requireTypedConfirm && (
           <div className="mb-4">
@@ -50,7 +52,7 @@ export function ConfirmDialog({
             onClick={onCancel}
             className="flex-1 py-2.5 rounded-xl border border-black/10 text-sm font-bold"
           >
-            취소
+            {cancelLabel}
           </button>
           <button
             onClick={onConfirm}

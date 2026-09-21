@@ -328,6 +328,10 @@ begin
 end;
 $$;
 
+-- ⚠️ 버그 수정(2026-09): actor_id는 uuid 컬럼인데 예전 버전은 문자열 'system'을
+-- 넣고 있었습니다 — "invalid input syntax for type uuid" 에러가 나서 유저가 자기
+-- 화면에서 답변을 삭제하려고 하면 항상 실패했습니다. auth.uid()(호출한 유저 본인의
+-- uuid)로 고쳤습니다.
 create or replace function public.user_hide_own_response(p_response_id uuid)
 returns void language plpgsql security definer set search_path = public as $$
 begin
@@ -340,7 +344,7 @@ begin
   end if;
   update public.responses set visibility = 'hidden_by_user', moderated_at = now() where id = p_response_id;
   insert into public.admin_audit_log (actor_id, actor_label, action, target_type, target_id, note)
-  values ('system', '유저 본인', 'hide_response', 'response', p_response_id::text,
+  values (auth.uid(), '유저 본인', 'hide_response', 'response', p_response_id::text,
     '유저가 자신의 화면에서 답변을 삭제함 (관리자에게는 계속 조회/복구 가능)');
 end;
 $$;

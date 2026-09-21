@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { BackButton } from "@/components/ui/BackButton";
+import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
 import {
   getMyQuestionnaires,
   getResponsesForQuestionnaire,
@@ -11,7 +12,54 @@ import {
 } from "@/lib/creatorFlow";
 import type { QuestionResponse } from "@/lib/types";
 
+// 표 한 페이지에 보여줄 최대 행 개수입니다.
+const PAGE_SIZE = 10;
+
 type Stage = "list" | "respondents" | "detail";
+
+// 질문지 목록 표에서 "만든 날짜"를 0000.00.00 형식으로 보여주기 위한 헬퍼입니다.
+function formatDotDate(iso: string) {
+  const d = new Date(iso);
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${yyyy}.${mm}.${dd}`;
+}
+
+// 표 아래에 붙는 "이전 / N of M / 다음" 페이지 넘김 컨트롤입니다. 페이지가 1개뿐이면
+// 아무것도 렌더링하지 않습니다.
+function Pagination({
+  page,
+  totalPages,
+  onChange,
+}: {
+  page: number;
+  totalPages: number;
+  onChange: (page: number) => void;
+}) {
+  if (totalPages <= 1) return null;
+  return (
+    <div className="flex items-center justify-center gap-3 py-2.5 border-t border-black/10 text-[12px]">
+      <button
+        onClick={() => onChange(Math.max(1, page - 1))}
+        disabled={page <= 1}
+        className="font-bold px-2.5 py-1 border border-black/15 disabled:opacity-30 active:bg-black/[0.04] transition-colors"
+      >
+        이전
+      </button>
+      <span className="text-ink-soft">
+        {page} / {totalPages}
+      </span>
+      <button
+        onClick={() => onChange(Math.min(totalPages, page + 1))}
+        disabled={page >= totalPages}
+        className="font-bold px-2.5 py-1 border border-black/15 disabled:opacity-30 active:bg-black/[0.04] transition-colors"
+      >
+        다음
+      </button>
+    </div>
+  );
+}
 
 export default function MyResponsesPage() {
   const [stage, setStage] = useState<Stage>("list");
@@ -25,11 +73,17 @@ export default function MyResponsesPage() {
 
   const [selectedResponse, setSelectedResponse] = useState<QuestionResponse | null>(null);
   const [hiding, setHiding] = useState(false);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+
+  const [listPage, setListPage] = useState(1);
+  const [respondentsPage, setRespondentsPage] = useState(1);
 
   const refreshList = useCallback(async () => {
     setLoadingList(true);
     const list = await getMyQuestionnaires();
     setQuestionnaires(list);
+    setListPage(1);
     setLoadingList(false);
   }, []);
 
@@ -40,10 +94,23 @@ export default function MyResponsesPage() {
   async function openQuestionnaire(q: MyQuestionnaireSummary) {
     setSelectedQuestionnaire(q);
     setStage("respondents");
+    setRespondentsPage(1);
     setLoadingRespondents(true);
     const list = await getResponsesForQuestionnaire(q.id);
     setRespondents(list);
     setLoadingRespondents(false);
+  }
+
+  async function handleCopyLink(e: React.MouseEvent, questionnaireId: string) {
+    e.stopPropagation();
+    const link = `${window.location.origin}/r/${questionnaireId}`;
+    try {
+      await navigator.clipboard.writeText(link);
+    } catch {
+      // 클립보드 권한이 없는 브라우저 대비 — 실패해도 조용히 무시합니다.
+    }
+    setCopiedId(questionnaireId);
+    setTimeout(() => setCopiedId((prev) => (prev === questionnaireId ? null : prev)), 1600);
   }
 
   async function openResponse(r: QuestionResponse) {
@@ -75,6 +142,7 @@ export default function MyResponsesPage() {
   function backToRespondents() {
     setStage("respondents");
     setSelectedResponse(null);
+    setRespondentsPage(1);
   }
 
   async function handleHide(responseId: string) {
@@ -98,6 +166,15 @@ export default function MyResponsesPage() {
       setHiding(false);
     }
   }
+
+  const listTotalPages = Math.max(1, Math.ceil(questionnaires.length / PAGE_SIZE));
+  const pagedQuestionnaires = questionnaires.slice((listPage - 1) * PAGE_SIZE, listPage * PAGE_SIZE);
+
+  const respondentsTotalPages = Math.max(1, Math.ceil(respondents.length / PAGE_SIZE));
+  const pagedRespondents = respondents.slice(
+    (respondentsPage - 1) * PAGE_SIZE,
+    respondentsPage * PAGE_SIZE
+  );
 
   return (
     <section className="flex flex-col flex-1 px-[22px] py-[26px]">
@@ -126,35 +203,91 @@ export default function MyResponsesPage() {
             <p className="text-sm text-ink-soft">아직 만든 질문지가 없어요. 먼저 질문지를 만들어봐.</p>
           )}
 
-          {questionnaires.map((q) => (
-            <button
-              key={q.id}
-              onClick={() => openQuestionnaire(q)}
-              className="text-left w-full bg-paper-card border border-black/10 rounded-2xl p-4 mb-3 active:scale-[0.99] transition"
-            >
-              <div className="flex items-center justify-between mb-2 gap-2">
-                <span className="font-bold text-[14.5px]">
-                  질문 {q.questions.length}개 · {new Date(q.createdAt).toLocaleDateString("ko-KR")}
-                </span>
-                {q.unreadCount > 0 && (
-                  <span className="shrink-0 text-xs font-bold text-paper-card bg-accent px-2 py-0.5 rounded-full">
-                    안읽음 {q.unreadCount}
-                  </span>
-                )}
-              </div>
-              <p className="text-xs text-ink-soft truncate">{q.questions[0]}</p>
-              <p className="text-xs text-ink-soft mt-1.5">답변 {q.responseCount}개</p>
-            </button>
-          ))}
+          {questionnaires.length > 0 && (
+            <div className="border border-black/10 bg-paper-card">
+              <table className="w-full table-fixed text-center border-collapse">
+                <colgroup>
+                  <col style={{ width: "24%" }} />
+                  <col style={{ width: "12%" }} />
+                  <col style={{ width: "12%" }} />
+                  <col style={{ width: "26%" }} />
+                  <col style={{ width: "26%" }} />
+                </colgroup>
+                <thead>
+                  <tr className="border-b border-black/10">
+                    <th className="px-2 py-2 text-[11px] font-bold text-ink-soft">만든날짜</th>
+                    <th className="px-2 py-2 text-[11px] font-bold text-ink-soft">질문 수</th>
+                    <th className="px-2 py-2 text-[11px] font-bold text-ink-soft">답변 수</th>
+                    <th className="px-2 py-2 text-[11px] font-bold text-ink-soft">답변보기</th>
+                    <th className="px-2 py-2 text-[11px] font-bold text-ink-soft">공유하기</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {pagedQuestionnaires.map((q) => (
+                    <tr
+                      key={q.id}
+                      onClick={() => openQuestionnaire(q)}
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          openQuestionnaire(q);
+                        }
+                      }}
+                      className="border-b border-black/5 last:border-b-0 cursor-pointer hover:bg-black/[0.04] active:bg-black/[0.06] transition-colors"
+                    >
+                      <td className="px-2 py-2 text-[12px] text-ink-soft whitespace-nowrap">
+                        {formatDotDate(q.createdAt)}
+                      </td>
+                      <td className="px-2 py-2 text-[12px] text-ink-soft whitespace-nowrap">
+                        {q.questions.length}개
+                      </td>
+                      <td className="px-2 py-2 text-[12px] font-bold whitespace-nowrap">
+                        {q.responseCount}개
+                      </td>
+                      <td className="px-2 py-2 whitespace-nowrap">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openQuestionnaire(q);
+                          }}
+                          className="text-[11px] font-bold px-2.5 py-1 border border-black/15 active:bg-black/[0.04] transition-colors"
+                        >
+                          보러가기
+                        </button>
+                      </td>
+                      <td className="px-2 py-2 whitespace-nowrap">
+                        <button
+                          onClick={(e) => handleCopyLink(e, q.id)}
+                          className="text-[11px] font-bold px-2.5 py-1 border border-black/15 active:bg-black/[0.04] transition-colors"
+                        >
+                          {copiedId === q.id ? "복사됨" : "링크 복사"}
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <Pagination page={listPage} totalPages={listTotalPages} onChange={setListPage} />
+            </div>
+          )}
         </>
       )}
 
       {stage === "respondents" && selectedQuestionnaire && (
         <>
           <h2 className="font-display text-2xl mb-1.5">답변한 친구들</h2>
-          <p className="text-[13.5px] text-ink-soft mb-5 leading-relaxed">
+          <p className="text-[13.5px] text-ink-soft mb-3 leading-relaxed">
             아래에서 눌러야 그 친구가 남긴 답변을 볼 수 있어요.
           </p>
+
+          <button
+            onClick={(e) => handleCopyLink(e, selectedQuestionnaire.id)}
+            className="self-start mb-5 text-[12px] font-bold px-3 py-1.5 border border-black/15 active:bg-black/[0.04] transition-colors"
+          >
+            {copiedId === selectedQuestionnaire.id ? "복사됨" : "이 질문지 링크 복사"}
+          </button>
 
           {loadingRespondents && <p className="text-sm text-ink-soft">불러오는 중...</p>}
 
@@ -162,27 +295,60 @@ export default function MyResponsesPage() {
             <p className="text-sm text-ink-soft">아직 받은 답변이 없어요.</p>
           )}
 
-          {respondents.map((r) => (
-            <button
-              key={r.id}
-              onClick={() => openResponse(r)}
-              className="text-left w-full flex items-center justify-between bg-paper-card border border-black/10 rounded-2xl p-4 mb-3 active:scale-[0.99] transition"
-            >
-              <div className="flex items-center gap-2 min-w-0">
-                <span className="font-bold truncate">{r.isAnonymous ? "익명" : r.nickname}</span>
-                <span className="shrink-0 text-xs bg-accent/10 text-accent font-bold px-2 py-0.5 rounded-full">
-                  {r.relationCloseness}
-                </span>
-              </div>
-              <span
-                className={`shrink-0 text-xs font-bold px-2.5 py-1 rounded-full ${
-                  r.isRead ? "bg-black/5 text-ink-soft" : "bg-accent text-paper-card"
-                }`}
-              >
-                {r.isRead ? "읽음" : "안읽음"}
-              </span>
-            </button>
-          ))}
+          {respondents.length > 0 && (
+            <div className="rounded-2xl border border-black/10 bg-paper-card overflow-hidden">
+              <table className="w-full table-fixed text-left border-collapse">
+                <colgroup>
+                  <col />
+                  <col style={{ width: "78px" }} />
+                  <col style={{ width: "64px" }} />
+                </colgroup>
+                <thead>
+                  <tr className="border-b border-black/10 bg-paper-card2/60">
+                    <th className="px-3 py-2.5 text-[11px] font-bold text-ink-soft">이름</th>
+                    <th className="px-3 py-2.5 text-[11px] font-bold text-ink-soft">친밀도</th>
+                    <th className="px-3 py-2.5 text-[11px] font-bold text-ink-soft text-right">상태</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {pagedRespondents.map((r) => (
+                    <tr
+                      key={r.id}
+                      onClick={() => openResponse(r)}
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          openResponse(r);
+                        }
+                      }}
+                      className="border-b border-black/5 last:border-b-0 cursor-pointer active:bg-black/[0.03] transition"
+                    >
+                      <td className="px-3 py-3 font-bold text-sm truncate">
+                        {r.isAnonymous ? "익명" : r.nickname}
+                      </td>
+                      <td className="px-3 py-3">
+                        <span className="inline-block text-[11px] bg-accent/10 text-accent font-bold px-2 py-0.5 rounded-full whitespace-nowrap">
+                          {r.relationCloseness}
+                        </span>
+                      </td>
+                      <td className="px-3 py-3 text-right">
+                        <span
+                          className={`inline-block text-[10.5px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap ${
+                            r.isRead ? "bg-black/5 text-ink-soft" : "bg-accent text-paper-card"
+                          }`}
+                        >
+                          {r.isRead ? "읽음" : "안읽음"}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <Pagination page={respondentsPage} totalPages={respondentsTotalPages} onChange={setRespondentsPage} />
+            </div>
+          )}
         </>
       )}
 
@@ -218,13 +384,27 @@ export default function MyResponsesPage() {
               {new Date(selectedResponse.createdAt).toLocaleString("ko-KR")}
             </span>
             <button
-              onClick={() => handleHide(selectedResponse.id)}
+              onClick={() => setConfirmDeleteOpen(true)}
               disabled={hiding}
               className="text-xs font-bold px-3 py-1.5 rounded-lg border border-black/15 disabled:opacity-50"
             >
               {hiding ? "삭제 중..." : "삭제"}
             </button>
           </div>
+
+          <ConfirmDialog
+            open={confirmDeleteOpen}
+            title="답변을 삭제하시겠습니까?"
+            description="삭제하면 답변을 더 이상 볼 수 없어요"
+            confirmLabel="예"
+            cancelLabel="아니오"
+            danger
+            onCancel={() => setConfirmDeleteOpen(false)}
+            onConfirm={() => {
+              setConfirmDeleteOpen(false);
+              handleHide(selectedResponse.id);
+            }}
+          />
         </>
       )}
     </section>
