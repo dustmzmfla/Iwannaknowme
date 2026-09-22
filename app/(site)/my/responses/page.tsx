@@ -68,6 +68,7 @@ export default function MyResponsesPage() {
 
   const [loadingList, setLoadingList] = useState(true);
   const [questionnaires, setQuestionnaires] = useState<MyQuestionnaireSummary[]>([]);
+  const [listError, setListError] = useState(false);
 
   const [loadingRespondents, setLoadingRespondents] = useState(false);
   const [selectedQuestionnaire, setSelectedQuestionnaire] = useState<MyQuestionnaireSummary | null>(null);
@@ -87,10 +88,17 @@ export default function MyResponsesPage() {
 
   const refreshList = useCallback(async () => {
     setLoadingList(true);
-    const list = await getMyQuestionnaires();
-    setQuestionnaires(list);
-    setListPage(1);
-    setLoadingList(false);
+    setListError(false);
+    try {
+      const list = await getMyQuestionnaires();
+      setQuestionnaires(list);
+      setListPage(1);
+    } catch (err) {
+      console.error("질문지 목록을 불러오지 못했습니다:", err);
+      setListError(true);
+    } finally {
+      setLoadingList(false);
+    }
   }, []);
 
   useEffect(() => {
@@ -226,7 +234,13 @@ export default function MyResponsesPage() {
 
           {loadingList && <p className="text-sm text-ink-soft">불러오는 중...</p>}
 
-          {!loadingList && questionnaires.length === 0 && (
+          {!loadingList && listError && (
+            <p className="text-sm text-accent">
+              질문지 목록을 불러오지 못했어요. 잠시 후 다시 시도해줘 (콘솔에 자세한 원인이 남아요).
+            </p>
+          )}
+
+          {!loadingList && !listError && questionnaires.length === 0 && (
             <p className="text-sm text-ink-soft">아직 만든 질문지가 없어요. 먼저 질문지를 만들어봐.</p>
           )}
 

@@ -144,12 +144,20 @@ export async function getMyQuestionnaires(): Promise<MyQuestionnaireSummary[]> {
   const user = session?.user;
   if (!user) return [];
 
-  const { data: qns } = await supabase
+  // ⚠️ 진단용(2026-09): 여기서 에러를 그냥 무시하면(구조분해 안 하면) 쿼리가 실패해도
+  // 화면에는 "만든 질문지가 없어요"로만 보여서 원인을 알 수가 없었습니다. 예를 들어
+  // visibility 컬럼 마이그레이션 SQL을 아직 안 돌렸으면 이 쿼리가 실패하는데, 그게 겉으로는
+  // "질문이 안 보인다"로만 나타났어요. 이제 에러를 콘솔에 남기고 위로 던집니다.
+  const { data: qns, error: qnsError } = await supabase
     .from("questionnaires")
     .select("id, questions, created_at")
     .eq("owner_id", user.id)
     .eq("visibility", "active")
     .order("created_at", { ascending: false });
+  if (qnsError) {
+    console.error("getMyQuestionnaires 실패:", qnsError);
+    throw qnsError;
+  }
   if (!qns || qns.length === 0) return [];
 
   const ids = qns.map((q: any) => q.id);

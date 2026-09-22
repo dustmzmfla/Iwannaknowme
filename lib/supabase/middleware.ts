@@ -6,7 +6,7 @@ const LOGIN_REQUIRED_PREFIXES = ["/build", "/my", "/inquiries"];
 /**
  * 매 요청마다 Supabase 세션 쿠키를 갱신합니다 (Next.js 미들웨어 표준 패턴).
  * - /build, /my 하위 경로: 로그인 안 했으면 /login으로.
- * - /admin 하위 경로: 로그인은 물론 role === "admin" 인지까지 확인해서 아니면 홈으로.
+ * - /manage-x7k29q 하위 경로: 로그인은 물론 role === "admin" 인지까지 확인해서 아니면 홈으로.
  */
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
@@ -35,7 +35,7 @@ export async function updateSession(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   const { pathname } = request.nextUrl;
-  const isAdminRoute = pathname.startsWith("/admin");
+  const isAdminRoute = pathname.startsWith("/manage-x7k29q");
   const needsLogin = isAdminRoute || LOGIN_REQUIRED_PREFIXES.some((p) => pathname.startsWith(p));
 
   if (needsLogin && !user) {

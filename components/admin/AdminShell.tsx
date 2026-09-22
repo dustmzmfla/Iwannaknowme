@@ -15,11 +15,11 @@ interface NavItem {
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { href: "/admin", label: "대시보드", icon: "📊", exact: true },
-  { href: "/admin/users", label: "유저 관리", icon: "👥" },
-  { href: "/admin/inquiries", label: "문의사항", icon: "📮", showBadge: true },
-  { href: "/admin/questions", label: "카테고리·질문 관리", icon: "📝" },
-  { href: "/admin/admins", label: "관리자 계정", icon: "🔑" },
+  { href: "/manage-x7k29q", label: "대시보드", icon: "📊", exact: true },
+  { href: "/manage-x7k29q/users", label: "유저 관리", icon: "👥" },
+  { href: "/manage-x7k29q/inquiries", label: "문의사항", icon: "📮", showBadge: true },
+  { href: "/manage-x7k29q/questions", label: "카테고리·질문 관리", icon: "📝" },
+  { href: "/manage-x7k29q/admins", label: "관리자 계정", icon: "🔑" },
 ];
 
 const POLL_MS = 20000;
@@ -65,7 +65,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
   }, [refreshPending]);
 
   useEffect(() => {
-    if (pathname.startsWith("/admin/inquiries")) refreshPending();
+    if (pathname.startsWith("/manage-x7k29q/inquiries")) refreshPending();
   }, [pathname, refreshPending]);
 
   function toggleCollapsed() {
@@ -140,7 +140,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
           </button>
           <div className="flex-1" />
           <button
-            onClick={() => router.push("/admin/inquiries")}
+            onClick={() => router.push("/manage-x7k29q/inquiries")}
             className="relative w-9 h-9 rounded-full hover:bg-black/5 flex items-center justify-center text-lg"
             aria-label="문의 알림"
             title={pending > 0 ? `답변 대기 문의 ${pending}건` : "새 문의 없음"}

@@ -87,7 +87,7 @@ export default function AdminDashboardPage() {
         <div className="bg-white border border-black/10 rounded-md">
           <div className="flex items-center justify-between px-4 py-3 border-b border-black/10">
             <h2 className="text-sm font-bold">답변 대기 중인 문의</h2>
-            <Link href="/admin/inquiries" className="text-xs text-accent font-bold hover:underline">
+            <Link href="/manage-x7k29q/inquiries" className="text-xs text-accent font-bold hover:underline">
               전체 보기
             </Link>
           </div>
@@ -100,7 +100,7 @@ export default function AdminDashboardPage() {
               {pendingInquiries.map((inq) => (
                 <li key={inq.id}>
                   <Link
-                    href={`/admin/inquiries/${inq.id}`}
+                    href={`/manage-x7k29q/inquiries/${inq.id}`}
                     className="flex items-center justify-between gap-3 px-4 py-2.5 text-sm hover:bg-black/[0.02]"
                   >
                     <span className="truncate flex items-center gap-1.5 min-w-0">
@@ -120,7 +120,7 @@ export default function AdminDashboardPage() {
         <div className="bg-white border border-black/10 rounded-md">
           <div className="flex items-center justify-between px-4 py-3 border-b border-black/10">
             <h2 className="text-sm font-bold">최근 가입한 유저</h2>
-            <Link href="/admin/users" className="text-xs text-accent font-bold hover:underline">
+            <Link href="/manage-x7k29q/users" className="text-xs text-accent font-bold hover:underline">
               전체 보기
             </Link>
           </div>
@@ -133,7 +133,7 @@ export default function AdminDashboardPage() {
               {recentUsers.map((u) => (
                 <li key={u.id}>
                   <Link
-                    href={`/admin/users/${u.id}`}
+                    href={`/manage-x7k29q/users/${u.id}`}
                     className="flex items-center justify-between gap-3 px-4 py-2.5 text-sm hover:bg-black/[0.02]"
                   >
                     <span className="truncate">{u.name}</span>

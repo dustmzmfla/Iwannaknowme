@@ -84,13 +84,13 @@ export default function AdminUsersPage() {
             {result.users.map((u) => (
               <tr
                 key={u.id}
-                onClick={() => router.push(`/admin/users/${u.id}`)}
+                onClick={() => router.push(`/manage-x7k29q/users/${u.id}`)}
                 role="button"
                 tabIndex={0}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" || e.key === " ") {
                     e.preventDefault();
-                    router.push(`/admin/users/${u.id}`);
+                    router.push(`/manage-x7k29q/users/${u.id}`);
                   }
                 }}
                 className="cursor-pointer hover:bg-black/[0.03]"

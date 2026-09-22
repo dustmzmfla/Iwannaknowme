@@ -95,7 +95,7 @@ export default function AdminInquiriesPage() {
                 </td>
                 <td className="px-4 py-2.5">
                   <Link
-                    href={`/admin/inquiries/${inq.id}`}
+                    href={`/manage-x7k29q/inquiries/${inq.id}`}
                     className="font-bold text-ink hover:text-accent hover:underline"
                   >
                     {inq.isSecret && <span className="mr-1">🔒</span>}

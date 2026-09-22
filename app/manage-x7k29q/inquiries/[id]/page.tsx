@@ -50,7 +50,7 @@ export default function AdminInquiryDetailPage() {
   if (inquiry === null) {
     return (
       <div>
-        <Link href="/admin/inquiries" className="text-sm text-black/50 hover:underline">
+        <Link href="/manage-x7k29q/inquiries" className="text-sm text-black/50 hover:underline">
           ← 문의사항 목록
         </Link>
         <p className="mt-4 text-sm text-black/50">문의를 찾을 수 없습니다.</p>
@@ -60,7 +60,7 @@ export default function AdminInquiryDetailPage() {
 
   return (
     <div className="max-w-3xl">
-      <Link href="/admin/inquiries" className="text-sm text-black/50 hover:underline">
+      <Link href="/manage-x7k29q/inquiries" className="text-sm text-black/50 hover:underline">
         ← 문의사항 목록
       </Link>
 

@@ -1,6 +1,19 @@
 -- ============================================================================
--- 나를 알려줘 (I wanna know me) — Supabase 스키마
--- Supabase 대시보드 > SQL Editor 에서 이 파일 전체를 한 번 실행하세요.
+-- 나를 알려줘 (I wanna know me) — Supabase 스키마 (통합본)
+--
+-- 이 파일 하나만 관리하면 됩니다. Supabase 대시보드 > SQL Editor에서 이 파일
+-- 전체를 복사해서 실행하세요 — 데이터베이스가 처음이든, 이미 어느 정도
+-- 만들어져 있든 상관없이 안전하게 실행됩니다(멱등성: 같은 내용을 다시 실행해도
+-- 에러 없이 "이미 있으면 건너뛰고, 바뀐 부분만 반영"하도록 만들어뒀습니다).
+-- 앞으로 기능이 추가돼서 이 파일이 바뀌면, 예전 버전을 지우고 이 파일 전체를
+-- 다시 한 번 실행해주면 됩니다 — 여러 파일을 따로 관리할 필요가 없습니다.
+--
+-- ⚠️ 데이터베이스 자체는 Supabase가 항상 켜진 상태로 운영해주는 서비스라서
+-- "껐다 켠다"는 개념이 없습니다. 이 SQL을 실행하는 건 스위치를 켜는 게 아니라
+-- 테이블/함수/권한 구조를 한 번 더 최신 상태로 맞추는 것뿐이고, 한 번 성공하면
+-- 그 변경은 영구적으로 남습니다. 매번 실행해야 "유지"되는 게 아니라, 코드가
+-- 새 기능 때문에 DB 구조를 바꿀 때만 다시 실행하면 됩니다.
+--
 -- 카카오 로그인은 Supabase Auth > Providers > Kakao 에서 별도로 설정합니다
 -- (REST API 키 / Client Secret을 등록하고, 카카오 디벨로퍼스에는
 --  `${SUPABASE_URL}/auth/v1/callback` 을 Redirect URI로 등록).
@@ -66,6 +79,14 @@ create table if not exists public.questionnaires (
   created_at timestamptz not null default now()
 );
 
+-- 이미 만들어져 있던 테이블에도 안전하게 적용되도록, 컬럼을 명시적으로 보정합니다.
+-- (바로 위 create table if not exists는 테이블이 이미 있으면 통째로 건너뛰기 때문에,
+--  나중에 추가된 컬럼은 여기서 add column if not exists로 따로 채워줘야 합니다.)
+alter table public.questionnaires add column if not exists visibility text not null default 'active';
+alter table public.questionnaires drop constraint if exists questionnaires_visibility_check;
+alter table public.questionnaires add constraint questionnaires_visibility_check
+  check (visibility in ('active', 'hidden_by_user'));
+
 create table if not exists public.responses (
   id uuid primary key default gen_random_uuid(),
   questionnaire_id uuid not null references public.questionnaires(id) on delete cascade,
@@ -91,6 +112,10 @@ create table if not exists public.admin_audit_log (
   note text,
   created_at timestamptz not null default now()
 );
+
+alter table public.admin_audit_log drop constraint if exists admin_audit_log_target_type_check;
+alter table public.admin_audit_log add constraint admin_audit_log_target_type_check
+  check (target_type in ('response', 'user', 'admin', 'inquiry', 'questionnaire'));
 
 -- ── inquiries (문의사항 게시판) ──────────────────────────────────────────
 -- 비밀글(is_secret) 노출 제어는 RLS(inquiries_select_visible)가 DB에서 강제합니다.
@@ -147,6 +172,25 @@ as $$
   );
 $$;
 
+-- 정책을 다시 만들기 전에 전부 지웁니다 — 재실행해도 "policy already exists"
+-- 에러 없이 항상 최신 정의로 덮어써집니다 (Postgres는 정책에 create or replace가
+-- 없어서 drop if exists + create로 흉내 냅니다).
+drop policy if exists "profiles_select_own_or_admin" on public.profiles;
+drop policy if exists "admin_allowlist_select_admin" on public.admin_allowlist;
+drop policy if exists "admin_audit_log_select_admin" on public.admin_audit_log;
+drop policy if exists "categories_select_all" on public.categories;
+drop policy if exists "question_bank_select_all" on public.question_bank;
+drop policy if exists "questionnaires_select_all" on public.questionnaires;
+drop policy if exists "questionnaires_insert_own" on public.questionnaires;
+drop policy if exists "questionnaires_delete_own" on public.questionnaires; -- 예전 버전 정책(더 이상 안 씀)
+drop policy if exists "responses_insert_anyone" on public.responses;
+drop policy if exists "responses_select_owner_or_admin" on public.responses;
+drop policy if exists "inquiries_select_visible" on public.inquiries;
+drop policy if exists "inquiries_insert_own" on public.inquiries;
+drop policy if exists "inquiries_update_own" on public.inquiries;
+drop policy if exists "inquiries_delete_own_or_admin" on public.inquiries;
+drop policy if exists "daily_visits_select_admin" on public.daily_visits;
+
 create policy "profiles_select_own_or_admin" on public.profiles
   for select using (id = auth.uid() or public.is_admin());
 
@@ -163,7 +207,9 @@ create policy "questionnaires_insert_own" on public.questionnaires
   for insert to authenticated with check (owner_id = auth.uid());
 -- ⚠️(2026-09): "질문 삭제"는 더 이상 실제 DELETE가 아니라 아래 user_delete_own_questionnaire
 -- RPC로 visibility만 바꾸는 소프트 삭제입니다 — 그래서 여기엔 delete 정책/권한을 두지
--- 않았습니다 (RPC가 SECURITY DEFINER라 별도 grant 없이도 동작해요).
+-- 않았습니다 (RPC가 SECURITY DEFINER라 별도 grant 없이도 동작해요). 혹시 예전에
+-- grant delete를 실행한 적이 있어도 안전하게 다시 거둬들입니다.
+revoke delete on public.questionnaires from authenticated;
 
 create policy "responses_insert_anyone" on public.responses
   for insert with check (visibility = 'active');

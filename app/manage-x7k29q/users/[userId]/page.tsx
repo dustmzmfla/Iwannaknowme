@@ -158,7 +158,7 @@ export default function AdminUserDetailPage() {
   if (!user) {
     return (
       <div>
-        <Link href="/admin" className="text-accent text-sm">
+        <Link href="/manage-x7k29q" className="text-accent text-sm">
           ← 목록으로
         </Link>
         <p className="mt-4 text-ink-soft">유저를 찾을 수 없어요.</p>
@@ -205,7 +205,7 @@ export default function AdminUserDetailPage() {
     <div>
       {/* "목록으로"는 왼쪽, 계정 정지/관리자 해제 같은 버튼들은 같은 줄 오른쪽 끝에 */}
       <div className="flex items-center justify-between flex-wrap gap-3 mb-4">
-        <Link href="/admin" className="text-accent text-sm">
+        <Link href="/manage-x7k29q" className="text-accent text-sm">
           ← 목록으로
         </Link>
         <div className="flex items-center gap-2">

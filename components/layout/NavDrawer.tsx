@@ -117,7 +117,7 @@ export function NavDrawer({
           </button>
           {isAdmin && (
             <button
-              onClick={() => go("/admin")}
+              onClick={() => go("/manage-x7k29q")}
               className="text-left font-bold text-[14.5px] py-3 px-3 rounded-xl bg-ink text-paper-card hover:opacity-90 transition mt-1"
             >
               🛠 관리자 페이지
