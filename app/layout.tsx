@@ -41,11 +41,20 @@ export const metadata: Metadata = {
   keywords: ["내가 누구게?", "익명 질문", "친구 질문", "질문지 만들기", "Who Am I?"],
   openGraph: {
     title: "내가 누구게? — Who Am I?",
-    description: "친한 친구에게도 차마 못 물어본 질문을 익명으로 던지고 솔직한 답을 받아보세요.",
+    description: "나도 모르는 내 모습, 네가 알려줄래?",
     url: siteUrl,
     siteName: "내가 누구게?",
     locale: "ko_KR",
     type: "website",
+    // 카카오톡 등에서 링크를 공유할 때 보여줄 미리보기 이미지입니다.
+    images: [
+      {
+        url: "/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "내가 누구게? — Who Am I?",
+      },
+    ],
   },
   robots: { index: true, follow: true },
   ...(searchConsoleVerification ? { verification: { google: searchConsoleVerification } } : {}),
