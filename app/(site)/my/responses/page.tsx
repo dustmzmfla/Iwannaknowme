@@ -460,7 +460,10 @@ export default function MyResponsesPage() {
               {selectedResponse.relationCloseness}
             </span>
           </div>
-          <p className="text-[13.5px] text-ink-soft mb-5">알고 지낸 기간 {selectedResponse.relationDuration}</p>
+          <p className="text-[13.5px] text-ink-soft mb-1.5">알고 지낸 기간 {selectedResponse.relationDuration}</p>
+          <p className="text-xs text-ink-soft mb-5">
+            {new Date(selectedResponse.createdAt).toLocaleString("ko-KR")}
+          </p>
 
           <div className="space-y-3 mb-4">
             {selectedQuestionnaire.questions.map((q, i) =>
@@ -477,26 +480,21 @@ export default function MyResponsesPage() {
             💌 {selectedResponse.finalMessage}
           </div>
 
-          <div className="flex items-center justify-between">
-            <span className="text-xs text-ink-soft">
-              {new Date(selectedResponse.createdAt).toLocaleString("ko-KR")}
-            </span>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={handleShare}
-                disabled={sharing}
-                className="text-xs font-bold px-3 py-1.5 rounded-lg border border-accent/40 text-accent disabled:opacity-50"
-              >
-                {sharing ? "만드는 중..." : "공유하기"}
-              </button>
-              <button
-                onClick={() => setConfirmDeleteOpen(true)}
-                disabled={hiding}
-                className="text-xs font-bold px-3 py-1.5 rounded-lg border border-black/15 disabled:opacity-50"
-              >
-                {hiding ? "삭제 중..." : "삭제"}
-              </button>
-            </div>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handleShare}
+              disabled={sharing}
+              className="flex-1 text-[18px] font-bold py-[9px] rounded-lg bg-accent text-white border border-accent disabled:opacity-50"
+            >
+              {sharing ? "만드는 중..." : "공유하기"}
+            </button>
+            <button
+              onClick={() => setConfirmDeleteOpen(true)}
+              disabled={hiding}
+              className="flex-1 text-[18px] font-bold py-[9px] rounded-lg border border-black/15 disabled:opacity-50"
+            >
+              {hiding ? "삭제 중..." : "삭제"}
+            </button>
           </div>
 
           <ConfirmDialog
