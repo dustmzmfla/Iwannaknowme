@@ -13,6 +13,7 @@ import {
   type MyQuestionnaireSummary,
 } from "@/lib/creatorFlow";
 import type { QuestionResponse } from "@/lib/types";
+import { generateShareCardPng, downloadBlob } from "@/lib/shareCard";
 
 // 표 한 페이지에 보여줄 최대 행 개수입니다.
 const PAGE_SIZE = 10;
@@ -76,6 +77,7 @@ export default function MyResponsesPage() {
 
   const [selectedResponse, setSelectedResponse] = useState<QuestionResponse | null>(null);
   const [hiding, setHiding] = useState(false);
+  const [sharing, setSharing] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const [confirmDeleteQnOpen, setConfirmDeleteQnOpen] = useState(false);
@@ -158,6 +160,29 @@ export default function MyResponsesPage() {
     setStage("respondents");
     setSelectedResponse(null);
     setRespondentsPage(1);
+  }
+
+  async function handleShare() {
+    if (!selectedQuestionnaire || !selectedResponse) return;
+    setSharing(true);
+    try {
+      const qa = selectedQuestionnaire.questions
+        .map((q, i) => ({ question: q, answer: selectedResponse.answers[i] }))
+        .filter((item): item is { question: string; answer: string } => Boolean(item.answer));
+      const blob = await generateShareCardPng({
+        isAnonymous: selectedResponse.isAnonymous,
+        nickname: selectedResponse.nickname ?? "",
+        qa,
+        finalMessage: selectedResponse.finalMessage,
+      });
+      downloadBlob(blob, `내가누구게_${selectedResponse.id}.png`);
+      showToast("이미지로 저장했어요.");
+    } catch (err) {
+      console.error("공유 이미지 생성 실패:", err);
+      showToast("이미지를 만들지 못했어요. 잠시 후 다시 시도해줘.");
+    } finally {
+      setSharing(false);
+    }
   }
 
   async function handleHide(responseId: string) {
@@ -456,13 +481,22 @@ export default function MyResponsesPage() {
             <span className="text-xs text-ink-soft">
               {new Date(selectedResponse.createdAt).toLocaleString("ko-KR")}
             </span>
-            <button
-              onClick={() => setConfirmDeleteOpen(true)}
-              disabled={hiding}
-              className="text-xs font-bold px-3 py-1.5 rounded-lg border border-black/15 disabled:opacity-50"
-            >
-              {hiding ? "삭제 중..." : "삭제"}
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleShare}
+                disabled={sharing}
+                className="text-xs font-bold px-3 py-1.5 rounded-lg border border-accent/40 text-accent disabled:opacity-50"
+              >
+                {sharing ? "만드는 중..." : "공유하기"}
+              </button>
+              <button
+                onClick={() => setConfirmDeleteOpen(true)}
+                disabled={hiding}
+                className="text-xs font-bold px-3 py-1.5 rounded-lg border border-black/15 disabled:opacity-50"
+              >
+                {hiding ? "삭제 중..." : "삭제"}
+              </button>
+            </div>
           </div>
 
           <ConfirmDialog
