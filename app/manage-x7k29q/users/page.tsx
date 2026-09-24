@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { listUsers, getUserStats, addAdmin, removeAdmin } from "@/lib/mockDb";
+import { listUsers, getUserStats, addAdmin, removeAdmin, setMembershipTier } from "@/lib/mockDb";
 import { Pagination } from "@/components/admin/Pagination";
 import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
 import type { AppUser } from "@/lib/types";
@@ -26,6 +26,8 @@ export default function AdminUsersPage() {
   const [loading, setLoading] = useState(true);
   const [adminToggleTarget, setAdminToggleTarget] = useState<AppUser | null>(null);
   const [adminBusy, setAdminBusy] = useState(false);
+  const [tierToggleTarget, setTierToggleTarget] = useState<AppUser | null>(null);
+  const [tierBusy, setTierBusy] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
@@ -69,7 +71,7 @@ export default function AdminUsersPage() {
       </div>
 
       <div className="bg-white border border-black/10 rounded-md overflow-x-auto">
-        <table className="w-full min-w-[720px] text-sm">
+        <table className="w-full min-w-[820px] text-sm">
           <thead>
             <tr className="bg-black/[0.03] text-left text-xs text-black/50">
               <th className="px-4 py-2.5 font-medium">이름</th>
@@ -77,6 +79,7 @@ export default function AdminUsersPage() {
               <th className="px-4 py-2.5 font-medium">생년월일</th>
               <th className="px-4 py-2.5 font-medium">가입일</th>
               <th className="px-4 py-2.5 font-medium">상태</th>
+              <th className="px-4 py-2.5 font-medium">등급</th>
               <th className="px-4 py-2.5 font-medium">권한</th>
             </tr>
           </thead>
@@ -108,6 +111,21 @@ export default function AdminUsersPage() {
                     <span className="text-xs font-bold text-green-700">활성</span>
                   )}
                 </td>
+                <td className="px-4 py-2.5 whitespace-nowrap">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setTierToggleTarget(u);
+                    }}
+                    className={
+                      u.membershipTier === "paid"
+                        ? "text-xs font-bold text-ink bg-highlight px-2.5 py-1 rounded hover:opacity-80"
+                        : "text-xs text-black/50 border border-black/15 px-2.5 py-1 rounded hover:bg-black/5"
+                    }
+                  >
+                    {u.membershipTier === "paid" ? "유료회원" : "일반회원"}
+                  </button>
+                </td>
                 <td className="px-4 py-2.5">
                   <button
                     onClick={(e) => {
@@ -127,7 +145,7 @@ export default function AdminUsersPage() {
             ))}
             {!loading && result.users.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-4 py-10 text-center text-black/40">
+                <td colSpan={7} className="px-4 py-10 text-center text-black/40">
                   검색 결과가 없어요.
                 </td>
               </tr>
@@ -173,6 +191,38 @@ export default function AdminUsersPage() {
             alert(e?.message ?? "관리자 권한을 변경하지 못했어요.");
           } finally {
             setAdminBusy(false);
+          }
+        }}
+      />
+
+      <ConfirmDialog
+        open={!!tierToggleTarget}
+        title={
+          tierToggleTarget?.membershipTier === "paid"
+            ? "일반회원으로 변경할까요?"
+            : "유료회원으로 변경할까요?"
+        }
+        description={
+          tierToggleTarget?.membershipTier === "paid"
+            ? `'${tierToggleTarget?.name}' 계정을 일반회원으로 되돌립니다.`
+            : `'${tierToggleTarget?.name}' 계정을 유료회원으로 올립니다.`
+        }
+        confirmLabel={tierToggleTarget?.membershipTier === "paid" ? "일반회원으로" : "유료회원으로"}
+        onCancel={() => setTierToggleTarget(null)}
+        onConfirm={async () => {
+          if (!tierToggleTarget || tierBusy) return;
+          setTierBusy(true);
+          try {
+            await setMembershipTier(
+              tierToggleTarget.id,
+              tierToggleTarget.membershipTier === "paid" ? "free" : "paid"
+            );
+            setTierToggleTarget(null);
+            setRefreshKey((k) => k + 1);
+          } catch (e: any) {
+            alert(e?.message ?? "회원 등급을 변경하지 못했어요.");
+          } finally {
+            setTierBusy(false);
           }
         }}
       />

@@ -42,6 +42,7 @@ function rowToProfile(row: any): AppUser {
     },
     status: row.status,
     role: row.role,
+    membershipTier: row.membership_tier,
   };
 }
 

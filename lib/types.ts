@@ -7,6 +7,9 @@ export type QuestionPool = Record<Category, string[]>;
 
 export type UserRole = "user" | "admin";
 
+/** 회원 등급 — "free"(일반회원) | "paid"(유료회원). 구독권 쿠폰을 등록하면 자동으로 paid가 됩니다. */
+export type MembershipTier = "free" | "paid";
+
 /** 카카오 로그인으로 가입한 유저 (관리자 페이지의 조회 대상이자, 질문지를 만드는 "질문자") */
 export interface AppUser {
   id: string; // Supabase auth user id (uuid)
@@ -22,6 +25,7 @@ export interface AppUser {
   };
   status: "active" | "suspended"; // 관리자가 정지시킬 수 있음
   role: UserRole; // "admin"이면 관리자 페이지 접근 가능 (admin_allowlist와 동기화됨)
+  membershipTier: MembershipTier; // 일반회원 / 유료회원
 }
 
 /** 한 사용자가 만든 질문지 */
@@ -69,14 +73,17 @@ export type AdminActionType =
   | "unsuspend_user"
   | "grant_admin"
   | "revoke_admin"
-  | "delete_account";
+  | "delete_account"
+  | "create_coupon"
+  | "delete_coupon"
+  | "set_membership_tier";
 
 export interface AdminAuditLog {
   id: string;
   actorId: string; // 관리자 계정 id ("system"이면 유저 스스로 한 행동)
   actorLabel: string;
   action: AdminActionType;
-  targetType: "response" | "user" | "admin";
+  targetType: "response" | "user" | "admin" | "inquiry" | "questionnaire" | "coupon";
   targetId: string;
   createdAt: string;
   note?: string;
@@ -121,4 +128,32 @@ export interface AdminAllowlistEntry {
   label: string | null;
   addedBy: string | null; // 등록한 관리자의 AppUser.id
   createdAt: string;
+}
+
+/** 프로모션 코드(쿠폰). single = 일회성(전체 통틀어 1회), multi = 다회성(유저별 1회, 여러 명). */
+export type CouponType = "single" | "multi";
+
+/** 쿠폰 종류. discount = 할인권(등록 시 discountRate% 할인), subscription = 구독권(등록 시 유료회원으로 업그레이드). */
+export type CouponKind = "discount" | "subscription";
+
+export interface Coupon {
+  id: string;
+  code: string;
+  type: CouponType;
+  kind: CouponKind;
+  discountRate: number | null; // kind가 "discount"일 때만 값이 있음 (1~99)
+  createdBy: string | null;
+  createdAt: string;
+}
+
+/** 쿠폰 하나를 누가, 언제 사용했는지 — 관리자 페이지 "보기" 팝업에 쓰입니다. */
+export interface CouponRedemption {
+  userId: string;
+  userName: string;
+  redeemedAt: string;
+}
+
+/** 관리자 쿠폰 목록 화면에서 쓰는, 사용 횟수까지 합쳐진 형태. */
+export interface CouponWithUsage extends Coupon {
+  usedCount: number;
 }

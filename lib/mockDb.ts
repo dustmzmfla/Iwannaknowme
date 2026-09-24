@@ -33,6 +33,7 @@ function rowToUser(row: any): AppUser {
     },
     status: row.status,
     role: row.role,
+    membershipTier: row.membership_tier,
   };
 }
 
@@ -319,5 +320,16 @@ export async function addAdmin(kakaoId: string, label: string) {
 export async function removeAdmin(kakaoId: string) {
   const supabase = createClient();
   const { error } = await supabase.rpc("admin_remove_admin", { p_kakao_id: kakaoId });
+  if (error) throw error;
+}
+
+// ---------------- 회원 등급 ----------------
+
+export async function setMembershipTier(userId: string, tier: "free" | "paid") {
+  const supabase = createClient();
+  const { error } = await supabase.rpc("admin_set_membership_tier", {
+    p_user_id: userId,
+    p_tier: tier,
+  });
   if (error) throw error;
 }

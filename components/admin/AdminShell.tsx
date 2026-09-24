@@ -19,6 +19,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/manage-x7k29q/users", label: "유저 관리", icon: "👥" },
   { href: "/manage-x7k29q/inquiries", label: "문의사항", icon: "📮", showBadge: true },
   { href: "/manage-x7k29q/questions", label: "카테고리·질문 관리", icon: "📝" },
+  { href: "/manage-x7k29q/coupons", label: "쿠폰 관리", icon: "🎟" },
   { href: "/manage-x7k29q/admins", label: "관리자 계정", icon: "🔑" },
 ];
 

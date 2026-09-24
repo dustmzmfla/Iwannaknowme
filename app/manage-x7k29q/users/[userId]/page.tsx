@@ -263,7 +263,7 @@ export default function AdminUserDetailPage() {
             </p>
           </div>
 
-          <div className="text-right">
+          <div className="text-right flex flex-col items-end gap-1.5">
             <span
               className={`inline-block text-xs font-bold px-3 py-1 rounded-full ${
                 user.status === "suspended"
@@ -272,6 +272,13 @@ export default function AdminUserDetailPage() {
               }`}
             >
               {user.status === "suspended" ? "정지됨" : "활성"}
+            </span>
+            <span
+              className={`inline-block text-xs font-bold px-3 py-1 rounded-full ${
+                user.membershipTier === "paid" ? "bg-highlight text-ink" : "bg-black/5 text-ink-soft"
+              }`}
+            >
+              {user.membershipTier === "paid" ? "유료회원" : "일반회원"}
             </span>
           </div>
         </div>

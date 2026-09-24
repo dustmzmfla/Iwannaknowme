@@ -30,11 +30,20 @@ create table if not exists public.profiles (
   birth_date date,
   status text not null default 'active' check (status in ('active', 'suspended')),
   role text not null default 'user' check (role in ('user', 'admin')),
+  -- 회원 등급(2026-09 추가): 'free'(일반회원) | 'paid'(유료회원). 구독권 쿠폰을
+  -- 등록하면 redeem_coupon RPC가 자동으로 'paid'로 올려줍니다.
+  membership_tier text not null default 'free' check (membership_tier in ('free', 'paid')),
   terms_agreed_at timestamptz,
   privacy_required_agreed_at timestamptz,
   privacy_optional_agreed_at timestamptz,
   created_at timestamptz not null default now()
 );
+
+-- 이미 만들어져 있던 profiles 테이블에도 안전하게 컬럼을 보정합니다.
+alter table public.profiles add column if not exists membership_tier text not null default 'free';
+alter table public.profiles drop constraint if exists profiles_membership_tier_check;
+alter table public.profiles add constraint profiles_membership_tier_check
+  check (membership_tier in ('free', 'paid'));
 
 -- ── admin_allowlist ─────────────────────────────────────────────────────
 -- 여기 등록된 kakao_id로 로그인하면 자동으로 profiles.role = 'admin' 이 됩니다.
@@ -107,7 +116,7 @@ create table if not exists public.admin_audit_log (
   actor_id uuid,
   actor_label text not null,
   action text not null,
-  target_type text not null check (target_type in ('response', 'user', 'admin', 'inquiry', 'questionnaire')),
+  target_type text not null check (target_type in ('response', 'user', 'admin', 'inquiry', 'questionnaire', 'coupon')),
   target_id text not null,
   note text,
   created_at timestamptz not null default now()
@@ -115,7 +124,7 @@ create table if not exists public.admin_audit_log (
 
 alter table public.admin_audit_log drop constraint if exists admin_audit_log_target_type_check;
 alter table public.admin_audit_log add constraint admin_audit_log_target_type_check
-  check (target_type in ('response', 'user', 'admin', 'inquiry', 'questionnaire'));
+  check (target_type in ('response', 'user', 'admin', 'inquiry', 'questionnaire', 'coupon'));
 
 -- ── inquiries (문의사항 게시판) ──────────────────────────────────────────
 -- 비밀글(is_secret) 노출 제어는 RLS(inquiries_select_visible)가 DB에서 강제합니다.
@@ -140,12 +149,49 @@ create table if not exists public.daily_visits (
   count int not null default 0
 );
 
+-- ── coupons (프로모션 코드) ──────────────────────────────────────────────
+-- type: 'single'(일회성 — 전체를 통틀어 딱 한 번만 사용 가능) | 'multi'(다회성 — 유저별로 한 번씩,
+-- 여러 명이 사용 가능). 코드는 대소문자를 구분해서 정확히 일치해야 합니다.
+-- kind: 'discount'(할인권 — discount_rate% 할인) | 'subscription'(구독권 — 등록 시
+-- 유료회원으로 업그레이드). type은 기존과 동일하게 사용 횟수 제한(일회성/다회성)입니다.
+create table if not exists public.coupons (
+  id uuid primary key default gen_random_uuid(),
+  code text unique not null,
+  type text not null check (type in ('single', 'multi')),
+  kind text not null default 'discount' check (kind in ('discount', 'subscription')),
+  discount_rate int check (discount_rate is null or (discount_rate between 1 and 99)),
+  created_by uuid references public.profiles(id) on delete set null,
+  created_at timestamptz not null default now()
+);
+
+-- 이미 만들어져 있던 coupons 테이블에도 안전하게 컬럼을 보정합니다.
+alter table public.coupons add column if not exists kind text not null default 'discount';
+alter table public.coupons drop constraint if exists coupons_kind_check;
+alter table public.coupons add constraint coupons_kind_check check (kind in ('discount', 'subscription'));
+alter table public.coupons add column if not exists discount_rate int;
+alter table public.coupons drop constraint if exists coupons_discount_rate_check;
+alter table public.coupons add constraint coupons_discount_rate_check
+  check (discount_rate is null or (discount_rate between 1 and 99));
+
+-- 코드 사용 기록. (coupon_id, user_id) unique로 같은 유저가 같은 코드를 두 번
+-- 쓰는 걸 항상 막습니다 — 일회성/다회성 공통 규칙이고, 일회성 전용 "전체 1회" 제한은
+-- redeem_coupon RPC에서 추가로 검사합니다.
+create table if not exists public.coupon_redemptions (
+  id uuid primary key default gen_random_uuid(),
+  coupon_id uuid not null references public.coupons(id) on delete cascade,
+  user_id uuid not null references public.profiles(id) on delete cascade,
+  redeemed_at timestamptz not null default now(),
+  unique (coupon_id, user_id)
+);
+
 create index if not exists idx_question_bank_category on public.question_bank(category_id);
 create index if not exists idx_questionnaires_owner on public.questionnaires(owner_id);
 create index if not exists idx_responses_questionnaire on public.responses(questionnaire_id);
 create index if not exists idx_audit_log_target on public.admin_audit_log(target_id);
 create index if not exists idx_inquiries_author on public.inquiries(author_id);
 create index if not exists idx_inquiries_created on public.inquiries(created_at desc);
+create index if not exists idx_coupon_redemptions_coupon on public.coupon_redemptions(coupon_id);
+create index if not exists idx_coupon_redemptions_user on public.coupon_redemptions(user_id);
 
 -- ============================================================================
 -- Row Level Security
@@ -159,6 +205,8 @@ alter table public.responses enable row level security;
 alter table public.admin_audit_log enable row level security;
 alter table public.inquiries enable row level security;
 alter table public.daily_visits enable row level security;
+alter table public.coupons enable row level security;
+alter table public.coupon_redemptions enable row level security;
 
 create or replace function public.is_admin()
 returns boolean
@@ -190,6 +238,8 @@ drop policy if exists "inquiries_insert_own" on public.inquiries;
 drop policy if exists "inquiries_update_own" on public.inquiries;
 drop policy if exists "inquiries_delete_own_or_admin" on public.inquiries;
 drop policy if exists "daily_visits_select_admin" on public.daily_visits;
+drop policy if exists "coupons_select_admin" on public.coupons;
+drop policy if exists "coupon_redemptions_select_admin" on public.coupon_redemptions;
 
 create policy "profiles_select_own_or_admin" on public.profiles
   for select using (id = auth.uid() or public.is_admin());
@@ -236,6 +286,10 @@ create policy "inquiries_delete_own_or_admin" on public.inquiries
 create policy "daily_visits_select_admin" on public.daily_visits
   for select using (public.is_admin());
 
+create policy "coupons_select_admin" on public.coupons for select using (public.is_admin());
+create policy "coupon_redemptions_select_admin" on public.coupon_redemptions
+  for select using (public.is_admin());
+
 grant usage on schema public to anon, authenticated;
 grant select on public.categories, public.question_bank, public.questionnaires to anon, authenticated;
 grant insert on public.questionnaires to authenticated;
@@ -247,6 +301,7 @@ grant insert on public.inquiries to authenticated;
 grant delete on public.inquiries to authenticated;
 grant update (title, content, is_secret, updated_at) on public.inquiries to authenticated;
 grant select on public.daily_visits to authenticated;
+grant select on public.coupons, public.coupon_redemptions to authenticated;
 
 -- ============================================================================
 -- 신규 가입 시 profiles 자동 생성 + admin_allowlist 동기화
@@ -545,10 +600,134 @@ begin
 end;
 $$;
 
+-- ── 프로모션 코드(쿠폰) ────────────────────────────────────────────────────
+-- ⚠️(2026-09): 할인권/구독권 구분(kind, discount_rate)이 추가되면서 파라미터 개수가
+-- 바뀌어서, create or replace로는 예전 2-인자 버전이 그대로 남기 때문에 명시적으로
+-- drop 먼저 합니다.
+drop function if exists public.admin_create_coupon(text, text);
+
+create or replace function public.admin_create_coupon(
+  p_code text,
+  p_type text,
+  p_kind text,
+  p_discount_rate int
+)
+returns uuid language plpgsql security definer set search_path = public as $$
+declare
+  v_id uuid;
+  v_rate int;
+begin
+  if not public.is_admin() then raise exception '관리자만 가능합니다'; end if;
+  if p_type not in ('single', 'multi') then raise exception '쿠폰 타입이 올바르지 않습니다'; end if;
+  if p_kind not in ('discount', 'subscription') then raise exception '쿠폰 종류가 올바르지 않습니다'; end if;
+  if p_code is null or length(p_code) = 0 or length(p_code) > 15 or p_code !~ '^[A-Za-z0-9]+$' then
+    raise exception '코드는 영문+숫자 조합으로 1~15자여야 합니다';
+  end if;
+
+  -- 구독권은 할인율이 의미가 없으니 항상 null로 고정하고, 할인권은 1~99 사이 값이 필수입니다.
+  if p_kind = 'subscription' then
+    v_rate := null;
+  else
+    if p_discount_rate is null or p_discount_rate < 1 or p_discount_rate > 99 then
+      raise exception '할인율은 1~99 사이로 입력해주세요';
+    end if;
+    v_rate := p_discount_rate;
+  end if;
+
+  insert into public.coupons (code, type, kind, discount_rate, created_by)
+    values (p_code, p_type, p_kind, v_rate, auth.uid())
+    returning id into v_id;
+
+  insert into public.admin_audit_log (actor_id, actor_label, action, target_type, target_id, note)
+  values (auth.uid(), coalesce((select name from public.profiles where id = auth.uid()), '관리자'),
+    'create_coupon', 'coupon', v_id::text, p_code);
+
+  return v_id;
+exception
+  when unique_violation then
+    raise exception '이미 존재하는 코드예요';
+end;
+$$;
+
+create or replace function public.admin_delete_coupon(p_coupon_id uuid)
+returns void language plpgsql security definer set search_path = public as $$
+declare v_code text;
+begin
+  if not public.is_admin() then raise exception '관리자만 가능합니다'; end if;
+  select code into v_code from public.coupons where id = p_coupon_id;
+  delete from public.coupons where id = p_coupon_id;
+  insert into public.admin_audit_log (actor_id, actor_label, action, target_type, target_id, note)
+  values (auth.uid(), coalesce((select name from public.profiles where id = auth.uid()), '관리자'),
+    'delete_coupon', 'coupon', p_coupon_id::text, v_code);
+end;
+$$;
+
+-- 관리자가 유저 등급(일반/유료)을 직접 변경합니다 — 유저 목록/상세 화면에서 호출.
+create or replace function public.admin_set_membership_tier(p_user_id uuid, p_tier text)
+returns void language plpgsql security definer set search_path = public as $$
+begin
+  if not public.is_admin() then raise exception '관리자만 가능합니다'; end if;
+  if p_tier not in ('free', 'paid') then raise exception '등급이 올바르지 않습니다'; end if;
+  update public.profiles set membership_tier = p_tier where id = p_user_id;
+  insert into public.admin_audit_log (actor_id, actor_label, action, target_type, target_id, note)
+  values (auth.uid(), coalesce((select name from public.profiles where id = auth.uid()), '관리자'),
+    'set_membership_tier', 'user', p_user_id::text, p_tier);
+end;
+$$;
+
+-- ⚠️(2026-09): 반환 타입을 void → jsonb로 바꿨습니다(어떤 종류의 코드였는지 클라이언트에
+-- 돌려줘서 "유료회원으로 업그레이드" / "OO% 할인 쿠폰 등록" 메시지를 구분해서 보여주려고요).
+-- create or replace는 반환 타입이 다르면 에러가 나서 drop이 먼저 필요합니다.
+drop function if exists public.redeem_coupon(text);
+
+-- 유저가 "코드입력" 화면에서 프로모션 코드를 등록합니다. 코드는 대소문자를 구분해서
+-- 정확히 일치해야 하고, 일회성 코드는 전체를 통틀어 딱 한 번만, 다회성 코드는
+-- 유저 한 명당 한 번씩(여러 명이) 사용할 수 있습니다. 구독권이면 등록과 동시에
+-- 유료회원으로 업그레이드됩니다.
+create or replace function public.redeem_coupon(p_code text)
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare
+  v_coupon record;
+  v_already_used boolean;
+  v_redeemed_count int;
+begin
+  if auth.uid() is null then raise exception '로그인이 필요합니다'; end if;
+
+  select * into v_coupon from public.coupons where code = p_code;
+  if v_coupon.id is null then
+    raise exception '유효하지 않은 코드예요';
+  end if;
+
+  select exists(
+    select 1 from public.coupon_redemptions
+    where coupon_id = v_coupon.id and user_id = auth.uid()
+  ) into v_already_used;
+  if v_already_used then
+    raise exception '이미 사용한 코드예요';
+  end if;
+
+  if v_coupon.type = 'single' then
+    select count(*) into v_redeemed_count from public.coupon_redemptions where coupon_id = v_coupon.id;
+    if v_redeemed_count > 0 then
+      raise exception '이미 사용된 코드예요';
+    end if;
+  end if;
+
+  insert into public.coupon_redemptions (coupon_id, user_id) values (v_coupon.id, auth.uid());
+
+  if v_coupon.kind = 'subscription' then
+    update public.profiles set membership_tier = 'paid' where id = auth.uid();
+  end if;
+
+  return jsonb_build_object('kind', v_coupon.kind, 'discountRate', v_coupon.discount_rate);
+end;
+$$;
+
 grant execute on all functions in schema public to authenticated;
 grant execute on function public.user_mark_response_read(uuid) to authenticated;
 grant execute on function public.admin_reply_inquiry(uuid, text) to authenticated;
 grant execute on function public.record_visit() to anon, authenticated;
+grant execute on function public.redeem_coupon(text) to authenticated;
 
 -- ============================================================================
 -- 초기 카테고리 시드 (lib/questionPool.ts 기본 데이터와 동일한 6개 카테고리)

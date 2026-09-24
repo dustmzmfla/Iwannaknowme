@@ -92,7 +92,18 @@ export function NavDrawer({
           )}
           <div className="min-w-0">
             <p className="font-display text-lg leading-tight truncate">{profile.name}</p>
-            <p className="text-xs text-ink-soft">카카오로 로그인함</p>
+            <p className="text-xs text-ink-soft flex items-center gap-1.5">
+              카카오로 로그인함
+              <span
+                className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
+                  profile.membershipTier === "paid"
+                    ? "bg-highlight/70 text-ink"
+                    : "bg-black/5 text-ink-soft"
+                }`}
+              >
+                {profile.membershipTier === "paid" ? "유료회원 ✨" : "일반회원"}
+              </span>
+            </p>
           </div>
         </div>
 
@@ -114,6 +125,12 @@ export function NavDrawer({
             className="text-left font-bold text-[14.5px] py-3 px-3 rounded-xl hover:bg-black/5 active:bg-black/10 transition"
           >
             📮 문의하기
+          </button>
+          <button
+            onClick={() => go("/code")}
+            className="text-left font-bold text-[14.5px] py-3 px-3 rounded-xl hover:bg-black/5 active:bg-black/10 transition"
+          >
+            🎟 코드입력
           </button>
           {isAdmin && (
             <button

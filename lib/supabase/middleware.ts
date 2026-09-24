@@ -1,7 +1,7 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-const LOGIN_REQUIRED_PREFIXES = ["/build", "/my", "/inquiries"];
+const LOGIN_REQUIRED_PREFIXES = ["/build", "/my", "/inquiries", "/code"];
 
 /**
  * 매 요청마다 Supabase 세션 쿠키를 갱신합니다 (Next.js 미들웨어 표준 패턴).
