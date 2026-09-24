@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { BackButton } from "@/components/ui/BackButton";
 import { Button } from "@/components/ui/Button";
-import { getQuestionnaire, type PublishedQuestionnaire } from "@/lib/creatorFlow";
+import { getQuestionnaire, hasResponded, type PublishedQuestionnaire } from "@/lib/creatorFlow";
 import { writeJSON } from "@/lib/storage";
 
 const DURATIONS = ["1년 미만", "1년", "2년", "3년", "4년", "5년 이상"];
@@ -21,10 +21,14 @@ export default function RespondentEntryPage() {
   );
   const [nickname, setNickname] = useState("");
   const [duration, setDuration] = useState(DURATIONS[0]);
+  const [answered, setAnswered] = useState(false);
 
   useEffect(() => {
     writeJSON(`iwkm_entry_${params.id}`, { nickname: "", duration: DURATIONS[0] });
-    getQuestionnaire(params.id).then(setQuestionnaire);
+    getQuestionnaire(params.id).then((q) => {
+      setQuestionnaire(q);
+      if (q) hasResponded(params.id).then(setAnswered);
+    });
   }, [params.id]);
 
   if (questionnaire === undefined) {
@@ -42,6 +46,19 @@ export default function RespondentEntryPage() {
         <h2 className="font-display text-2xl mb-1.5">링크를 못 찾겠어</h2>
         <p className="text-[13.5px] text-ink-soft leading-relaxed">
           링크가 만료됐거나 잘못됐나 봐. 질문지 만든 사람한테 다시 확인해봐.
+        </p>
+      </section>
+    );
+  }
+
+  if (answered) {
+    return (
+      <section className="flex flex-col flex-1 px-[22px] py-[26px]">
+        <BackButton fallbackHref="/" />
+        <h2 className="font-display text-2xl mb-1.5">이미 답변하셨습니다</h2>
+        <p className="text-[13.5px] text-ink-soft leading-relaxed">
+          이 링크로는 이미 답변을 보냈어. 같은 사람이 여러 번 답변하지 못하도록
+          하나의 링크당 한 번만 참여할 수 있어.
         </p>
       </section>
     );

@@ -2,6 +2,7 @@
 // 실제 Supabase questionnaires/responses 테이블을 사용합니다 — 다른 사람이 링크를
 // 열어도 정상적으로 같은 질문지를 볼 수 있습니다.
 import { createClient } from "@/lib/supabase/client";
+import { getOrCreateRespondentToken } from "@/lib/storage";
 import type { QuestionResponse } from "./types";
 
 export interface PublishedQuestionnaire {
@@ -62,6 +63,29 @@ export async function getQuestionnaire(id: string): Promise<PublishedQuestionnai
   };
 }
 
+/** 이 브라우저(익명 토큰 기준)가 이 질문지에 이미 답변한 적 있는지 확인합니다.
+ * 토큰을 만들 수 없는 환경(SSR 등)이면 안전하게 false를 반환합니다. */
+export async function hasResponded(id: string): Promise<boolean> {
+  const token = getOrCreateRespondentToken();
+  if (!token) return false;
+  const supabase = createClient();
+  const { data, error } = await supabase.rpc("has_responded", {
+    p_questionnaire_id: id,
+    p_respondent_token: token,
+  });
+  if (error) return false;
+  return Boolean(data);
+}
+
+/** 유니크 인덱스(questionnaire_id, respondent_token) 위반 시 던지는 전용 에러입니다.
+ * 화면에서 이 에러만 골라서 "이미 답변했다"는 안내로 바꿔 보여줄 수 있게 합니다. */
+export class AlreadyRespondedError extends Error {
+  constructor() {
+    super("이미 이 링크로 답변했습니다");
+    this.name = "AlreadyRespondedError";
+  }
+}
+
 export async function submitResponse(id: string, response: SubmittedResponse) {
   const supabase = createClient();
   const { error } = await supabase.from("responses").insert({
@@ -72,8 +96,14 @@ export async function submitResponse(id: string, response: SubmittedResponse) {
     relation_closeness: response.relation,
     final_message: response.finalMessage,
     answers: response.answers,
+    respondent_token: getOrCreateRespondentToken(),
   });
-  if (error) throw error;
+  if (error) {
+    // 23505 = unique_violation. 거의 대부분 hasResponded() 체크에서 이미 걸러지지만,
+    // 동시에 두 탭으로 제출하는 등 드문 경쟁 상황을 대비한 이중 방어입니다.
+    if (error.code === "23505") throw new AlreadyRespondedError();
+    throw error;
+  }
 }
 
 /** 공유 페이지의 "지금까지 N명이 답변했어요" 카운트용. 본인 질문지가 아니면

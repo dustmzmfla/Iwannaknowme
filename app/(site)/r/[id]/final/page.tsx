@@ -4,8 +4,9 @@ import { useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { BackButton } from "@/components/ui/BackButton";
 import { Button } from "@/components/ui/Button";
+import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
 import { readJSON } from "@/lib/storage";
-import { submitResponse } from "@/lib/creatorFlow";
+import { submitResponse, AlreadyRespondedError } from "@/lib/creatorFlow";
 
 const RELATIONS = ["악연", "지인", "친구", "절친", "인연"] as const;
 
@@ -20,8 +21,9 @@ export default function RespondentFinalPage() {
   const [finalMessage, setFinalMessage] = useState("");
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
 
-  async function handleSubmit() {
+  function handleReviewSubmit() {
     if (!relation) {
       setError("나와의 관계를 선택해줘!");
       return;
@@ -30,6 +32,12 @@ export default function RespondentFinalPage() {
       setError("마지막 한마디는 꼭 남겨줘!");
       return;
     }
+    setError("");
+    setShowConfirm(true);
+  }
+
+  async function handleConfirmSubmit() {
+    setShowConfirm(false);
     if (submitting) return;
     setSubmitting(true);
     setError("");
@@ -45,13 +53,19 @@ export default function RespondentFinalPage() {
         nickname: entry.nickname || null,
         isAnonymous: entry.nickname.length === 0,
         duration: entry.duration,
-        relation,
+        relation: relation as (typeof RELATIONS)[number],
         finalMessage: finalMessage.trim(),
         answers,
         createdAt: new Date().toISOString(),
       });
       router.push(`/r/${params.id}/done`);
-    } catch {
+    } catch (err) {
+      if (err instanceof AlreadyRespondedError) {
+        // 아주 드물게(두 탭 동시 제출 등) 여기서 걸러지는 경우로, 이미 답변은
+        // 정상적으로 저장돼 있는 상태라 done 화면으로 그대로 보내줍니다.
+        router.push(`/r/${params.id}/done`);
+        return;
+      }
       setError("답변을 보내지 못했어. 잠시 후 다시 시도해줘.");
       setSubmitting(false);
     }
@@ -99,10 +113,20 @@ export default function RespondentFinalPage() {
       {error && <p className="text-sm text-accent mb-3">{error}</p>}
 
       <div className="mt-auto pt-5">
-        <Button onClick={handleSubmit} disabled={submitting}>
+        <Button onClick={handleReviewSubmit} disabled={submitting}>
           {submitting ? "보내는 중..." : "답변 보내기"}
         </Button>
       </div>
+
+      <ConfirmDialog
+        open={showConfirm}
+        title="제출 후엔 수정·삭제가 불가합니다"
+        description="답변을 제출하시겠습니까?"
+        confirmLabel="예"
+        cancelLabel="아니오"
+        onConfirm={handleConfirmSubmit}
+        onCancel={() => setShowConfirm(false)}
+      />
     </section>
   );
 }

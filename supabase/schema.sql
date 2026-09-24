@@ -116,6 +116,15 @@ create table if not exists public.responses (
   moderated_at timestamptz
 );
 
+-- 답변자는 로그인하지 않으므로 브라우저(localStorage)에 저장해두는 임의의 토큰으로
+-- "같은 사람"을 식별합니다. 완벽한 신원 확인은 아니지만(다른 브라우저/기기/시크릿모드는
+-- 못 막음), 같은 링크로 실수로/의도적으로 여러 번 답변하는 흔한 경우는 막아줍니다.
+-- 옛날에 만들어진 응답에는 값이 없을 수 있어서 nullable로 둡니다.
+alter table public.responses add column if not exists respondent_token uuid;
+drop index if exists idx_responses_dedup;
+create unique index idx_responses_dedup on public.responses(questionnaire_id, respondent_token)
+  where respondent_token is not null;
+
 create table if not exists public.admin_audit_log (
   id uuid primary key default gen_random_uuid(),
   actor_id uuid,
@@ -772,6 +781,18 @@ grant execute on all functions in schema public to authenticated;
 grant execute on function public.user_mark_response_read(uuid) to authenticated;
 grant execute on function public.admin_reply_inquiry(uuid, text) to authenticated;
 grant execute on function public.record_visit() to anon, authenticated;
+
+-- 답변 시작 전에 "이미 이 링크로 답변한 적 있는지"만 boolean으로 확인합니다.
+-- responses 테이블 내용 자체는 노출하지 않으므로 anon이 호출해도 안전합니다.
+create or replace function public.has_responded(p_questionnaire_id uuid, p_respondent_token uuid)
+returns boolean language sql stable security definer set search_path = public as $$
+  select exists (
+    select 1 from public.responses
+    where questionnaire_id = p_questionnaire_id and respondent_token = p_respondent_token
+  );
+$$;
+
+grant execute on function public.has_responded(uuid, uuid) to anon, authenticated;
 grant execute on function public.redeem_coupon(text) to authenticated;
 
 -- ============================================================================
