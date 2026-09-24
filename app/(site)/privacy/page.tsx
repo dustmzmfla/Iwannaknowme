@@ -21,10 +21,6 @@ export default function PrivacyPolicyPage() {
               카카오 계정 고유 식별자, 닉네임(프로필명), 프로필 사진 URL
             </td>
           </tr>
-          <tr>
-            <td className="py-1.5 font-bold">선택</td>
-            <td className="py-1.5">생년월일</td>
-          </tr>
         </tbody>
       </table>
       <p className="text-xs text-ink-soft mb-2">
@@ -98,7 +94,7 @@ export default function PrivacyPolicyPage() {
 
       <h2 className="font-bold mt-5 mb-2">8. 개인정보 보호책임자</h2>
       <p>
-        담당자: 스해누 (해누소프트웨어, 사업자등록번호 111-37-34863) / 이메일:{" "}
+        담당자: 서현우 (해누소프트웨어, 사업자등록번호 111-37-34863) / 이메일:{" "}
         haenooss@gmail.com
       </p>
       <p className="text-xs text-ink-soft mt-1">

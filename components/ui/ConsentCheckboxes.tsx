@@ -69,7 +69,7 @@ export function ConsentCheckboxes({
           }
         />
         <span>
-          <b>[선택]</b> 생년월일 등 부가 정보 수집에 동의합니다. 동의하지 않아도
+          <b>[선택]</b> 부가 정보 수집에 동의합니다. 동의하지 않아도
           서비스 이용에는 제한이 없습니다.
         </span>
       </label>
