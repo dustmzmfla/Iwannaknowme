@@ -154,6 +154,15 @@ create table if not exists public.daily_visits (
   count int not null default 0
 );
 
+-- 로그인한 유저가 하루에 여러 번(다른 브라우저/기기 포함) 접속해도 딱 한 번만
+-- daily_visits.count에 반영되도록 하는 집계용 로그입니다. 비로그인 방문자는
+-- 서버에서 식별할 안정적인 방법이 없어서 기존처럼 매번 카운트됩니다.
+create table if not exists public.daily_visit_log (
+  day date not null,
+  user_id uuid not null references public.profiles(id) on delete cascade,
+  primary key (day, user_id)
+);
+
 -- ── coupons (프로모션 코드) ──────────────────────────────────────────────
 -- type: 'single'(일회성 — 전체를 통틀어 딱 한 번만 사용 가능) | 'multi'(다회성 — 유저별로 한 번씩,
 -- 여러 명이 사용 가능). 코드는 대소문자를 구분해서 정확히 일치해야 합니다.
@@ -210,6 +219,7 @@ alter table public.responses enable row level security;
 alter table public.admin_audit_log enable row level security;
 alter table public.inquiries enable row level security;
 alter table public.daily_visits enable row level security;
+alter table public.daily_visit_log enable row level security;
 alter table public.coupons enable row level security;
 alter table public.coupon_redemptions enable row level security;
 
@@ -291,6 +301,9 @@ create policy "inquiries_delete_own_or_admin" on public.inquiries
 create policy "daily_visits_select_admin" on public.daily_visits
   for select using (public.is_admin());
 
+create policy "daily_visit_log_select_admin" on public.daily_visit_log
+  for select using (public.is_admin());
+
 create policy "coupons_select_admin" on public.coupons for select using (public.is_admin());
 create policy "coupon_redemptions_select_admin" on public.coupon_redemptions
   for select using (public.is_admin());
@@ -306,6 +319,7 @@ grant insert on public.inquiries to authenticated;
 grant delete on public.inquiries to authenticated;
 grant update (title, content, is_secret, updated_at) on public.inquiries to authenticated;
 grant select on public.daily_visits to authenticated;
+grant select on public.daily_visit_log to authenticated;
 grant select on public.coupons, public.coupon_redemptions to authenticated;
 
 -- ============================================================================
@@ -600,9 +614,26 @@ begin
 end;
 $$;
 
+-- 로그인 유저는 auth.uid() 기준으로 하루 1번만 카운트되도록 daily_visit_log로
+-- 중복을 막습니다 (다른 브라우저/기기로 재접속해도 재카운트되지 않음). 비로그인
+-- 방문자는 안정적인 식별자가 없어서 기존처럼 호출될 때마다 카운트됩니다.
 create or replace function public.record_visit()
 returns void language plpgsql security definer set search_path = public as $$
+declare
+  v_uid uuid := auth.uid();
+  v_rows int;
 begin
+  if v_uid is not null then
+    insert into public.daily_visit_log (day, user_id)
+    values (current_date, v_uid)
+    on conflict (day, user_id) do nothing;
+    get diagnostics v_rows = row_count;
+    if v_rows = 0 then
+      -- 오늘 이미 이 유저의 방문이 기록되어 있으니 카운트를 늘리지 않습니다.
+      return;
+    end if;
+  end if;
+
   insert into public.daily_visits (day, count)
   values (current_date, 1)
   on conflict (day) do update set count = public.daily_visits.count + 1;
