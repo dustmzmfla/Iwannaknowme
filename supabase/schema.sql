@@ -30,9 +30,11 @@ create table if not exists public.profiles (
   birth_date date,
   status text not null default 'active' check (status in ('active', 'suspended')),
   role text not null default 'user' check (role in ('user', 'admin')),
-  -- 회원 등급(2026-09 추가): 'free'(일반회원) | 'paid'(유료회원). 구독권 쿠폰을
-  -- 등록하면 redeem_coupon RPC가 자동으로 'paid'로 올려줍니다.
-  membership_tier text not null default 'free' check (membership_tier in ('free', 'paid')),
+  -- 회원 등급(2026-09 추가): 'free'(일반회원) | 'paid'(유료회원) | 'admin'(관리자 — 모든
+  -- 권한/기능 오픈). 구독권 쿠폰을 등록하면 redeem_coupon RPC가 자동으로 'paid'로,
+  -- 관리자로 지정되면 admin_add_admin RPC(+가입 시점 트리거)가 자동으로 'admin'으로
+  -- 올려줍니다. 'admin'은 관리자 지정/해제를 통해서만 바뀌고 다른 경로로는 설정할 수 없습니다.
+  membership_tier text not null default 'free' check (membership_tier in ('free', 'paid', 'admin')),
   terms_agreed_at timestamptz,
   privacy_required_agreed_at timestamptz,
   privacy_optional_agreed_at timestamptz,
@@ -43,7 +45,10 @@ create table if not exists public.profiles (
 alter table public.profiles add column if not exists membership_tier text not null default 'free';
 alter table public.profiles drop constraint if exists profiles_membership_tier_check;
 alter table public.profiles add constraint profiles_membership_tier_check
-  check (membership_tier in ('free', 'paid'));
+  check (membership_tier in ('free', 'paid', 'admin'));
+
+-- 이미 관리자로 지정되어 있던 계정들도 등급을 'admin'으로 맞춰줍니다(재실행해도 안전).
+update public.profiles set membership_tier = 'admin' where role = 'admin' and membership_tier <> 'admin';
 
 -- ── admin_allowlist ─────────────────────────────────────────────────────
 -- 여기 등록된 kakao_id로 로그인하면 자동으로 profiles.role = 'admin' 이 됩니다.
@@ -341,8 +346,8 @@ begin
     v_role := 'admin';
   end if;
 
-  insert into public.profiles (id, kakao_id, name, avatar_url, role)
-  values (new.id, v_kakao_id, v_name, v_avatar, v_role)
+  insert into public.profiles (id, kakao_id, name, avatar_url, role, membership_tier)
+  values (new.id, v_kakao_id, v_name, v_avatar, v_role, case when v_role = 'admin' then 'admin' else 'free' end)
   on conflict (id) do update
     set name = excluded.name, avatar_url = excluded.avatar_url;
 
@@ -386,7 +391,8 @@ begin
     privacy_required_agreed_at = case when p_privacy_required_agreed then now() else privacy_required_agreed_at end,
     privacy_optional_agreed_at = case when p_privacy_optional_agreed then now() else privacy_optional_agreed_at end,
     birth_date = case when p_privacy_optional_agreed then p_birth_date else null end,
-    role = case when v_should_be_admin then 'admin' else role end
+    role = case when v_should_be_admin then 'admin' else role end,
+    membership_tier = case when v_should_be_admin then 'admin' else membership_tier end
   where id = auth.uid();
 end;
 $$;
@@ -520,7 +526,8 @@ begin
   if not public.is_admin() then raise exception '관리자만 가능합니다'; end if;
   insert into public.admin_allowlist (kakao_id, label, added_by) values (p_kakao_id, p_label, auth.uid())
     on conflict (kakao_id) do update set label = excluded.label;
-  update public.profiles set role = 'admin' where kakao_id = p_kakao_id;
+  -- 관리자로 지정되면 회원 등급도 자동으로 'admin'(모든 권한/기능 오픈)이 됩니다.
+  update public.profiles set role = 'admin', membership_tier = 'admin' where kakao_id = p_kakao_id;
   insert into public.admin_audit_log (actor_id, actor_label, action, target_type, target_id, note)
   values (auth.uid(), coalesce((select name from public.profiles where id = auth.uid()), '관리자'),
     'grant_admin', 'admin', p_kakao_id, p_label);
@@ -535,7 +542,9 @@ begin
     raise exception '마지막 남은 관리자는 삭제할 수 없습니다';
   end if;
   delete from public.admin_allowlist where kakao_id = p_kakao_id;
-  update public.profiles set role = 'user' where kakao_id = p_kakao_id;
+  -- 관리자 해제 시 등급도 일반회원으로 되돌립니다 (이전에 유료회원이었어도 초기화됩니다 —
+  -- 필요하면 유저 목록에서 다시 유료회원으로 바꿔줄 수 있어요).
+  update public.profiles set role = 'user', membership_tier = 'free' where kakao_id = p_kakao_id;
   insert into public.admin_audit_log (actor_id, actor_label, action, target_type, target_id)
   values (auth.uid(), coalesce((select name from public.profiles where id = auth.uid()), '관리자'),
     'revoke_admin', 'admin', p_kakao_id);
@@ -663,11 +672,16 @@ end;
 $$;
 
 -- 관리자가 유저 등급(일반/유료)을 직접 변경합니다 — 유저 목록/상세 화면에서 호출.
+-- 'admin' 등급은 여기서 줄 수 없고(관리자 지정을 통해서만 자동으로 부여됨), 이미
+-- 관리자인 유저의 등급도 여기서 바꿀 수 없습니다(관리자 해제를 통해서만 바뀜).
 create or replace function public.admin_set_membership_tier(p_user_id uuid, p_tier text)
 returns void language plpgsql security definer set search_path = public as $$
 begin
   if not public.is_admin() then raise exception '관리자만 가능합니다'; end if;
   if p_tier not in ('free', 'paid') then raise exception '등급이 올바르지 않습니다'; end if;
+  if exists (select 1 from public.profiles where id = p_user_id and role = 'admin') then
+    raise exception '관리자 계정의 등급은 관리자 지정/해제를 통해서만 바뀝니다';
+  end if;
   update public.profiles set membership_tier = p_tier where id = p_user_id;
   insert into public.admin_audit_log (actor_id, actor_label, action, target_type, target_id, note)
   values (auth.uid(), coalesce((select name from public.profiles where id = auth.uid()), '관리자'),

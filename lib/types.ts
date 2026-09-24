@@ -7,8 +7,10 @@ export type QuestionPool = Record<Category, string[]>;
 
 export type UserRole = "user" | "admin";
 
-/** 회원 등급 — "free"(일반회원) | "paid"(유료회원). 구독권 쿠폰을 등록하면 자동으로 paid가 됩니다. */
-export type MembershipTier = "free" | "paid";
+/** 회원 등급 — "free"(일반회원) | "paid"(유료회원) | "admin"(관리자, 모든 권한/기능 오픈).
+ * 구독권 쿠폰을 등록하면 자동으로 paid가 되고, 관리자로 지정되면 자동으로 admin이 됩니다
+ * (admin 등급은 관리자 지정/해제를 통해서만 바뀌고, 쿠폰이나 관리자 페이지에서 직접 줄 수는 없어요). */
+export type MembershipTier = "free" | "paid" | "admin";
 
 /** 카카오 로그인으로 가입한 유저 (관리자 페이지의 조회 대상이자, 질문지를 만드는 "질문자") */
 export interface AppUser {
@@ -25,7 +27,7 @@ export interface AppUser {
   };
   status: "active" | "suspended"; // 관리자가 정지시킬 수 있음
   role: UserRole; // "admin"이면 관리자 페이지 접근 가능 (admin_allowlist와 동기화됨)
-  membershipTier: MembershipTier; // 일반회원 / 유료회원
+  membershipTier: MembershipTier; // 일반회원 / 유료회원 / 관리자
 }
 
 /** 한 사용자가 만든 질문지 */
