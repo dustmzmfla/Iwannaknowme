@@ -51,14 +51,14 @@ export default function AdminInquiriesPage() {
             setSearch(searchInput);
             setPage(1);
           }}
-          className="flex gap-2"
+          className="flex gap-2 w-full sm:w-auto"
         >
           <input
             type="text"
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
             placeholder="제목 · 작성자 검색"
-            className="border border-black/15 rounded-md px-3 py-2 text-sm bg-white w-64"
+            className="border border-black/15 rounded-md px-3 py-2 text-sm bg-white w-full sm:w-64"
           />
           <button
             type="submit"
@@ -85,7 +85,7 @@ export default function AdminInquiriesPage() {
                 <td className="px-4 py-2.5">
                   {inq.adminReply ? (
                     <span className="inline-flex items-center text-xs font-bold text-green-700 bg-green-700/10 rounded-full px-2 py-0.5">
-                      답변䙄료
+                      답변완료
                     </span>
                   ) : (
                     <span className="inline-flex items-center text-xs font-bold text-accent bg-accent/10 rounded-full px-2 py-0.5">

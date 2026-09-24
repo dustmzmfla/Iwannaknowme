@@ -88,7 +88,7 @@ export default function AdminAdminsPage() {
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl border border-black/10 overflow-hidden">
+      <div className="bg-white rounded-2xl border border-black/10 overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
             <tr className="bg-black/5 text-left text-ink-soft">

@@ -64,7 +64,7 @@ export default function AdminUsersPage() {
             setPage(1);
           }}
           placeholder="이름 · 카카오 아이디로 검색"
-          className="border border-black/15 rounded-md px-3 py-2 text-sm bg-white w-64"
+          className="border border-black/15 rounded-md px-3 py-2 text-sm bg-white w-full sm:w-64"
         />
       </div>
 

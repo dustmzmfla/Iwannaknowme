@@ -303,7 +303,7 @@ export default function AdminUserDetailPage() {
                 구분해서, 질문지가 늘어나도 하위 질문/답변이 서로 안 섞이게 해뒀어요.
                 행을 누르면 그 질문지를 고르고, 아래 "받은 답변"에 그 질문지의
                 답변자들이 뜹니다. */}
-            <div className="border border-black/10 rounded-xl overflow-hidden">
+            <div className="border border-black/10 rounded-xl overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="bg-black/[0.03] text-left text-xs text-black/50">
@@ -401,7 +401,7 @@ export default function AdminUserDetailPage() {
               <>
                 {/* 답변자 행을 누르면 팝업으로 이 질문지의 하위 질문 전체 + 그 사람이
                     적은 답변을 모두 확인할 수 있어요 (ResponseCard 재사용). */}
-                <div className="border border-black/10 rounded-xl overflow-hidden">
+                <div className="border border-black/10 rounded-xl overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="bg-black/[0.03] text-left text-xs text-black/50">
