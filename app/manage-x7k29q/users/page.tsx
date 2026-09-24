@@ -69,7 +69,7 @@ export default function AdminUsersPage() {
       </div>
 
       <div className="bg-white border border-black/10 rounded-md overflow-x-auto">
-        <table className="w-full text-sm">
+        <table className="w-full min-w-[720px] text-sm">
           <thead>
             <tr className="bg-black/[0.03] text-left text-xs text-black/50">
               <th className="px-4 py-2.5 font-medium">이름</th>
@@ -95,13 +95,13 @@ export default function AdminUsersPage() {
                 }}
                 className="cursor-pointer hover:bg-black/[0.03]"
               >
-                <td className="px-4 py-2.5 font-bold text-accent">{u.name}</td>
-                <td className="px-4 py-2.5 text-black/60">{u.kakaoId}</td>
-                <td className="px-4 py-2.5 text-black/60">{maskBirthDate(u.birthDate)}</td>
-                <td className="px-4 py-2.5 text-black/60">
+                <td className="px-4 py-2.5 font-bold text-accent whitespace-nowrap">{u.name}</td>
+                <td className="px-4 py-2.5 text-black/60 whitespace-nowrap">{u.kakaoId}</td>
+                <td className="px-4 py-2.5 text-black/60 whitespace-nowrap">{maskBirthDate(u.birthDate)}</td>
+                <td className="px-4 py-2.5 text-black/60 whitespace-nowrap">
                   {new Date(u.createdAt).toLocaleDateString("ko-KR")}
                 </td>
-                <td className="px-4 py-2.5">
+                <td className="px-4 py-2.5 whitespace-nowrap">
                   {u.status === "suspended" ? (
                     <span className="text-xs font-bold text-accent">정지됨</span>
                   ) : (

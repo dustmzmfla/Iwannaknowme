@@ -123,9 +123,9 @@ export default function AdminQuestionsPage() {
         <button
           onClick={handleAddCategory}
           disabled={busy || !newCategory.trim()}
-          className="px-4 py-2.5 rounded-xl bg-ink text-paper-card text-sm font-bold disabled:opacity-40"
+          className="flex-none px-4 py-2.5 rounded-xl bg-ink text-paper-card text-sm font-bold disabled:opacity-40"
         >
-          카테고리 추가
+          추가
         </button>
       </div>
 
@@ -189,9 +189,9 @@ export default function AdminQuestionsPage() {
                 <button
                   onClick={() => handleAddQuestion(cat.id)}
                   disabled={busy || !(newQuestionByCategory[cat.id] ?? "").trim()}
-                  className="px-3.5 py-2 rounded-xl bg-white border border-black/15 text-sm font-bold disabled:opacity-40"
+                  className="flex-none px-3.5 py-2 rounded-xl bg-white border border-black/15 text-sm font-bold disabled:opacity-40"
                 >
-                  질문 추가
+                  추가
                 </button>
               </div>
             </div>

@@ -70,7 +70,7 @@ export default function AdminInquiriesPage() {
       </div>
 
       <div className="bg-white border border-black/10 rounded-md overflow-x-auto">
-        <table className="w-full text-sm">
+        <table className="w-full min-w-[640px] text-sm">
           <thead>
             <tr className="bg-black/[0.03] text-left text-xs text-black/50">
               <th className="px-4 py-2.5 font-medium w-24">상태</th>
@@ -82,7 +82,7 @@ export default function AdminInquiriesPage() {
           <tbody className="divide-y divide-black/5">
             {items.map((inq) => (
               <tr key={inq.id} className="hover:bg-black/[0.015]">
-                <td className="px-4 py-2.5">
+                <td className="px-4 py-2.5 whitespace-nowrap">
                   {inq.adminReply ? (
                     <span className="inline-flex items-center text-xs font-bold text-green-700 bg-green-700/10 rounded-full px-2 py-0.5">
                       답변완료
@@ -102,8 +102,8 @@ export default function AdminInquiriesPage() {
                     {inq.title}
                   </Link>
                 </td>
-                <td className="px-4 py-2.5 text-black/60">{inq.authorName ?? "익명"}</td>
-                <td className="px-4 py-2.5 text-black/60">
+                <td className="px-4 py-2.5 text-black/60 whitespace-nowrap">{inq.authorName ?? "익명"}</td>
+                <td className="px-4 py-2.5 text-black/60 whitespace-nowrap">
                   {new Date(inq.createdAt).toLocaleDateString("ko-KR")}
                 </td>
               </tr>

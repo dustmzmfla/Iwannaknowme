@@ -92,19 +92,19 @@ export default function AdminAdminsPage() {
         <table className="w-full text-sm">
           <thead>
             <tr className="bg-black/5 text-left text-ink-soft">
-              <th className="px-4 py-3 font-medium">카카오 아이디</th>
+              <th className="px-4 py-3 font-medium whitespace-nowrap">카카오 아이디</th>
               <th className="px-4 py-3 font-medium">메모</th>
-              <th className="px-4 py-3 font-medium">등록일</th>
+              <th className="px-4 py-3 font-medium whitespace-nowrap w-28">등록일</th>
               <th className="px-4 py-3 font-medium"></th>
             </tr>
           </thead>
           <tbody>
             {admins.map((a) => (
               <tr key={a.kakaoId} className="border-t border-black/5">
-                <td className="px-4 py-3 font-bold">{a.kakaoId}</td>
-                <td className="px-4 py-3 text-ink-soft">{a.label ?? "—"}</td>
-                <td className="px-4 py-3 text-ink-soft">
-                  {new Date(a.createdAt).toLocaleString("ko-KR")}
+                <td className="px-4 py-3 font-bold whitespace-nowrap">{a.kakaoId}</td>
+                <td className="px-4 py-3 text-ink-soft whitespace-nowrap">{a.label ?? "—"}</td>
+                <td className="px-4 py-3 text-ink-soft whitespace-nowrap w-28">
+                  {new Date(a.createdAt).toLocaleDateString("ko-KR")}
                 </td>
                 <td className="px-4 py-3 text-right">
                   <button
