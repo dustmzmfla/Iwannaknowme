@@ -275,10 +275,18 @@ export default function AdminUserDetailPage() {
             </span>
             <span
               className={`inline-block text-xs font-bold px-3 py-1 rounded-full ${
-                user.membershipTier === "paid" ? "bg-highlight text-ink" : "bg-black/5 text-ink-soft"
+                user.membershipTier === "admin"
+                  ? "bg-ink text-paper-card"
+                  : user.membershipTier === "paid"
+                    ? "bg-highlight text-ink"
+                    : "bg-black/5 text-ink-soft"
               }`}
             >
-              {user.membershipTier === "paid" ? "유료회원" : "일반회원"}
+              {user.membershipTier === "admin"
+                ? "관리자"
+                : user.membershipTier === "paid"
+                  ? "유료회원"
+                  : "일반회원"}
             </span>
           </div>
         </div>

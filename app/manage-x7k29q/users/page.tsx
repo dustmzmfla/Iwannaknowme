@@ -112,19 +112,28 @@ export default function AdminUsersPage() {
                   )}
                 </td>
                 <td className="px-4 py-2.5 whitespace-nowrap">
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setTierToggleTarget(u);
-                    }}
-                    className={
-                      u.membershipTier === "paid"
-                        ? "text-xs font-bold text-ink bg-highlight px-2.5 py-1 rounded hover:opacity-80"
-                        : "text-xs text-black/50 border border-black/15 px-2.5 py-1 rounded hover:bg-black/5"
-                    }
-                  >
-                    {u.membershipTier === "paid" ? "유료회원" : "일반회원"}
-                  </button>
+                  {u.role === "admin" ? (
+                    <span
+                      title="관리자 등급은 관리자 지정/해제를 통해서만 바뀌어요."
+                      className="text-xs font-bold text-white bg-ink px-2.5 py-1 rounded inline-block"
+                    >
+                      관리자
+                    </span>
+                  ) : (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setTierToggleTarget(u);
+                      }}
+                      className={
+                        u.membershipTier === "paid"
+                          ? "text-xs font-bold text-ink bg-highlight px-2.5 py-1 rounded hover:opacity-80"
+                          : "text-xs text-black/50 border border-black/15 px-2.5 py-1 rounded hover:bg-black/5"
+                      }
+                    >
+                      {u.membershipTier === "paid" ? "유료회원" : "일반회원"}
+                    </button>
+                  )}
                 </td>
                 <td className="px-4 py-2.5">
                   <button

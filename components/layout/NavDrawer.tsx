@@ -96,12 +96,18 @@ export function NavDrawer({
               카카오로 로그인함
               <span
                 className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
-                  profile.membershipTier === "paid"
-                    ? "bg-highlight/70 text-ink"
-                    : "bg-black/5 text-ink-soft"
+                  profile.membershipTier === "admin"
+                    ? "bg-ink text-paper-card"
+                    : profile.membershipTier === "paid"
+                      ? "bg-highlight/70 text-ink"
+                      : "bg-black/5 text-ink-soft"
                 }`}
               >
-                {profile.membershipTier === "paid" ? "유료회원 ✨" : "일반회원"}
+                {profile.membershipTier === "admin"
+                  ? "관리자"
+                  : profile.membershipTier === "paid"
+                    ? "유료회원 ✨"
+                    : "일반회원"}
               </span>
             </p>
           </div>
