@@ -5,9 +5,10 @@
 //   const { showToast } = useToast();
 //   showToast("URL이 복사되었습니다.");
 //
-// 화면 상단에 고정으로 뜨고, 3초 동안 떠 있다가 자동으로 사라지고, 토스트 자체나
-// 뒷배경을 클릭하면 바로 사라집니다. 얇은 바가 3초에 걸쳐 줄어들면서 남은 시간을
-// 보여주고, 떠 있는 동안에는 뒷배경이 반투명 흰색으로 살짝 뿌옇게(blur) 보입니다.
+// 화면 상단에 고정으로 뜨고, 위에서 아래로 살짝 내려오며 페이드인되고, 3초 동안
+// 떠 있다가 자동으로 사라지고, 토스트 자체를 클릭하면 바로 사라집니다. 얇은 바가
+// 3초에 걸쳐 줄어들면서 남은 시간을 보여줍니다. 뒷배경은 어둡게/뿌옇게 가리지
+// 않아서, 떠 있는 동안에도 화면의 나머지 부분을 그대로 보고 조작할 수 있습니다.
 // showToast(message, onDismiss)의 onDismiss는 자동 소멸/직접 클릭 소멸 어느 쪽이든
 // 토스트가 실제로 사라지는 바로 그 순간 딱 한 번 호출됩니다 — "토스트가 꺼지면
 // 페이지 이동" 같은 동작을 여기 하나로 처리할 수 있습니다.
@@ -66,36 +67,39 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       {children}
 
       {toast && (
-        <>
-          {/* 토스트가 떠 있는 동안 뒷배경을 반투명 흰색 + blur로 뿌옇게 만들고,
-              배경을 눌러도 토스트를 바로 닫을 수 있게 합니다. */}
+        <div className="fixed inset-x-0 top-6 z-[999] flex justify-center px-6 pointer-events-none">
           <button
+            key={toast.id}
             type="button"
-            aria-label="알림 닫기"
             onClick={dismiss}
-            className="fixed inset-0 z-[998] bg-white/60 backdrop-blur-sm cursor-default"
-          />
-          <div className="fixed inset-x-0 top-6 z-[999] flex justify-center px-6 pointer-events-none">
-            <button
-              key={toast.id}
-              type="button"
-              onClick={dismiss}
-              className="pointer-events-auto max-w-[86%] overflow-hidden rounded-xl bg-ink text-paper-card shadow-xl"
-            >
-              <div className="px-4 py-3 text-[13px] font-bold text-center break-keep">{toast.message}</div>
-              <div className="h-[3px] bg-white/20">
-                <div
-                  key={toast.id}
-                  className="h-full bg-highlight toast-progress-bar"
-                  style={{ animationDuration: `${TOAST_DURATION_MS}ms` }}
-                />
-              </div>
-            </button>
-          </div>
-        </>
+            className="toast-enter pointer-events-auto max-w-[86%] overflow-hidden rounded-xl bg-ink text-paper-card shadow-xl"
+          >
+            <div className="px-4 py-3 text-[13px] font-bold text-center break-keep">{toast.message}</div>
+            <div className="h-[3px] bg-white/20">
+              <div
+                key={toast.id}
+                className="h-full bg-highlight toast-progress-bar"
+                style={{ animationDuration: `${TOAST_DURATION_MS}ms` }}
+              />
+            </div>
+          </button>
+        </div>
       )}
 
       <style jsx global>{`
+        @keyframes toast-enter {
+          from {
+            opacity: 0;
+            transform: translateY(-16px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        .toast-enter {
+          animation: toast-enter 0.28s ease-out;
+        }
         @keyframes toast-progress-shrink {
           from {
             width: 100%;
