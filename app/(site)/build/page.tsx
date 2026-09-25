@@ -71,6 +71,9 @@ export default function BuildPage() {
     setError("");
     try {
       const id = await publishQuestionnaire(profile?.name ?? "친구", selected);
+      // 발행이 끝나면 임시 저장해뒀던 draft를 지워야, 다음에 "새 질문 만들기"를
+      // 눌렀을 때 방금 만든 질문이 그대로 선택된 채로 남아있지 않습니다.
+      writeJSON("iwkm_draft_selected", []);
       router.push(`/share/${id}`);
     } catch {
       setError("질문지를 발행하지 못했어요. 잠시 후 다시 시도해줘.");
