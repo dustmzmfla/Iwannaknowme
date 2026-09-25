@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 import { Gaegu, Noto_Sans_KR, Black_Han_Sans } from "next/font/google";
 import "./globals.css";
@@ -59,6 +59,17 @@ export const metadata: Metadata = {
   robots: { index: true, follow: true },
   ...(searchConsoleVerification ? { verification: { google: searchConsoleVerification } } : {}),
   ...(adsenseAccount ? { other: { "google-adsense-account": adsenseAccount } } : {}),
+};
+
+// iOS/안드로이드 브라우저는 input 등 폼 요소의 글자 크기가 16px보다 작으면
+// 포커스할 때 화면을 자동으로 확대(zoom)합니다. maximumScale/userScalable을
+// 고정해서 그 확대 동작 자체를 막아, 인풋을 눌러도 화면이 줌인되지 않고
+// 바로 입력할 수 있게 합니다.
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
 };
 
 // 루트 레이아웃은 폰트/전역 스타일 + 로그인 상태 제공(AuthProvider) + 애드센스 스크립트를 담당합니다.
