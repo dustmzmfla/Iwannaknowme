@@ -65,7 +65,7 @@ export function NavDrawer({
         role="dialog"
         aria-modal="true"
         aria-label="메뉴"
-        className={`fixed top-0 right-0 z-50 h-full w-1/2 min-w-[240px] max-w-[380px] bg-paper-card shadow-2xl flex flex-col px-5 py-6 transition-transform duration-300 ease-out will-change-transform ${
+        className={`fixed top-0 right-0 z-50 h-screen w-1/2 min-w-[240px] max-w-[380px] bg-paper-card shadow-2xl flex flex-col px-5 py-6 transition-transform duration-300 ease-out will-change-transform ${
           open ? "translate-x-0" : "translate-x-full"
         }`}
       >
@@ -77,22 +77,22 @@ export function NavDrawer({
           ✕
         </button>
 
-        <div className="flex items-center gap-3 mb-6 pb-5 border-b border-black/10 min-w-0">
+        <div className="flex flex-col items-center gap-2 mb-6 pb-5 border-b border-black/10 text-center">
           {profile.avatarUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={profile.avatarUrl}
               alt=""
-              className="w-12 h-12 rounded-full object-cover border border-black/10 shrink-0"
+              className="w-14 h-14 rounded-full object-cover border border-black/10 shrink-0"
             />
           ) : (
-            <div className="w-12 h-12 rounded-full bg-highlight/60 flex items-center justify-center font-display text-lg shrink-0">
+            <div className="w-14 h-14 rounded-full bg-highlight/60 flex items-center justify-center font-display text-lg shrink-0">
               {profile.name.slice(0, 1)}
             </div>
           )}
-          <div className="min-w-0">
+          <div className="min-w-0 max-w-full">
             <p className="font-display text-lg leading-tight truncate">{profile.name}</p>
-            <p className="text-xs text-ink-soft flex items-center gap-1.5">
+            <p className="text-xs text-ink-soft flex items-center justify-center gap-1.5 mt-1">
               카카오로 로그인함
               <span
                 className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
@@ -106,7 +106,7 @@ export function NavDrawer({
                 {profile.membershipTier === "admin"
                   ? "관리자"
                   : profile.membershipTier === "paid"
-                    ? "유료회원 ✨"
+                    ? "유료회원"
                     : "일반회원"}
               </span>
             </p>
@@ -118,32 +118,32 @@ export function NavDrawer({
             onClick={() => go("/build")}
             className="text-left font-bold text-[14.5px] py-3 px-3 rounded-xl hover:bg-black/5 active:bg-black/10 transition"
           >
-            ✏️ 새 질문 만들기
+            새 질문 만들기
           </button>
           <button
             onClick={() => go("/my/responses")}
             className="text-left font-bold text-[14.5px] py-3 px-3 rounded-xl hover:bg-black/5 active:bg-black/10 transition"
           >
-            💌 받은 답변 보기
+            받은 답변 보기
           </button>
           <button
             onClick={() => go("/inquiries")}
             className="text-left font-bold text-[14.5px] py-3 px-3 rounded-xl hover:bg-black/5 active:bg-black/10 transition"
           >
-            📮 문의하기
+            문의하기
           </button>
           <button
             onClick={() => go("/code")}
             className="text-left font-bold text-[14.5px] py-3 px-3 rounded-xl hover:bg-black/5 active:bg-black/10 transition"
           >
-            🎟 코드입력
+            코드입력
           </button>
           {isAdmin && (
             <button
               onClick={() => go("/manage-x7k29q")}
               className="text-left font-bold text-[14.5px] py-3 px-3 rounded-xl bg-ink text-paper-card hover:opacity-90 transition mt-1"
             >
-              🛠 관리자 페이지
+              관리자 페이지
             </button>
           )}
         </nav>
@@ -159,7 +159,7 @@ export function NavDrawer({
             onClick={() => setConfirmDelete(true)}
             className="text-left text-[13px] font-bold text-accent py-2.5 px-3 rounded-xl hover:bg-accent/10 transition"
           >
-            🗑 계정 삭제
+            계정 삭제
           </button>
         </div>
       </aside>
