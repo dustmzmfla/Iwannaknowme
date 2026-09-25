@@ -118,7 +118,7 @@ export default function BuildPage() {
                 type="button"
                 disabled={disabled}
                 onClick={() => toggle(q)}
-                className={`relative text-left text-[12.6px] leading-snug rounded-xl px-3 py-2.5 border transition disabled:opacity-40 ${
+                className={`relative flex items-center min-h-[54px] text-left text-[12.6px] leading-snug rounded-xl px-3 py-2.5 border transition disabled:opacity-40 ${
                   picked
                     ? "bg-ink text-paper-card border-ink font-bold"
                     : "bg-paper-card2 border-black/10 hover:border-black/30"
