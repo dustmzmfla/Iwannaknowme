@@ -32,7 +32,11 @@ export function LinkAnswerInput({ className = "" }: { className?: string }) {
         onClick={go}
         disabled={!value.trim()}
         aria-label="이동하기"
-        className="shrink-0 w-11 h-11 rounded-xl bg-white/55 border border-white/60 flex items-center justify-center font-bold text-[#2B2320] disabled:opacity-40 active:scale-95 transition"
+        className={`shrink-0 w-11 h-11 rounded-xl border flex items-center justify-center font-bold active:scale-95 transition ${
+          value.trim()
+            ? "bg-accent border-accent text-paper-card"
+            : "bg-white/55 border-white/60 text-[#2B2320] opacity-40"
+        }`}
       >
         →
       </button>

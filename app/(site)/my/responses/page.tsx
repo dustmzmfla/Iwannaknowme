@@ -469,8 +469,14 @@ export default function MyResponsesPage() {
             {selectedQuestionnaire.questions.map((q, i) =>
               selectedResponse.answers[i] ? (
                 <div key={i} className="bg-paper-card border border-black/10 rounded-xl p-3.5">
-                  <div className="text-xs text-ink-soft mb-1">{q}</div>
-                  <div className="text-sm">{selectedResponse.answers[i]}</div>
+                  <div className="flex items-start gap-1.5 mb-1.5">
+                    <span className="shrink-0 text-xs font-bold text-accent">Q.</span>
+                    <span className="text-xs font-bold text-accent break-words">{q}</span>
+                  </div>
+                  <div className="flex items-start gap-1.5">
+                    <span className="shrink-0 text-sm font-bold text-ink-soft">A.</span>
+                    <span className="text-sm break-words">{selectedResponse.answers[i]}</span>
+                  </div>
                 </div>
               ) : null
             )}
