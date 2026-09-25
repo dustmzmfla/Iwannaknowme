@@ -118,7 +118,7 @@ export default function AdminQuestionsPage() {
           onChange={(e) => setNewCategory(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && handleAddCategory()}
           placeholder="새 카테고리 이름 (예: 취향)"
-          className="flex-1 border border-black/15 rounded-xl px-3.5 py-2.5 text-sm"
+          className="flex-1 min-w-0 border border-black/15 rounded-xl px-3.5 py-2.5 text-sm"
         />
         <button
           onClick={handleAddCategory}
@@ -136,13 +136,13 @@ export default function AdminQuestionsPage() {
           const items = questions.filter((q) => q.categoryId === cat.id);
           return (
             <div key={cat.id} className="bg-white rounded-2xl border border-black/10 p-5 mb-4">
-              <div className="flex items-center justify-between mb-3">
-                <h2 className="font-bold text-lg">
+              <div className="flex items-center justify-between gap-2 mb-3">
+                <h2 className="flex-1 min-w-0 truncate font-bold text-lg">
                   {cat.name} <span className="text-sm text-ink-soft font-normal">({items.length}개)</span>
                 </h2>
                 <button
                   onClick={() => setDeleteCategoryTarget(cat)}
-                  className="text-xs font-bold text-accent px-2.5 py-1 rounded-lg border border-accent/40"
+                  className="shrink-0 whitespace-nowrap text-xs font-bold text-accent px-2.5 py-1 rounded-lg border border-accent/40"
                 >
                   카테고리 삭제
                 </button>
@@ -156,7 +156,7 @@ export default function AdminQuestionsPage() {
                       q.isActive ? "bg-paper-card2" : "bg-black/[0.03] text-ink-soft line-through"
                     }`}
                   >
-                    <span className="flex-1">{q.text}</span>
+                    <span className="flex-1 min-w-0 break-words">{q.text}</span>
                     <button
                       onClick={() => handleToggleActive(q)}
                       className="text-xs font-bold px-2 py-1 rounded-lg border border-black/15 shrink-0"
@@ -184,7 +184,7 @@ export default function AdminQuestionsPage() {
                   }
                   onKeyDown={(e) => e.key === "Enter" && handleAddQuestion(cat.id)}
                   placeholder="새 질문 입력"
-                  className="flex-1 border border-black/15 rounded-xl px-3.5 py-2 text-sm"
+                  className="flex-1 min-w-0 border border-black/15 rounded-xl px-3.5 py-2 text-sm"
                 />
                 <button
                   onClick={() => handleAddQuestion(cat.id)}
