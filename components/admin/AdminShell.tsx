@@ -183,11 +183,30 @@ export function AdminShell({ children }: { children: ReactNode }) {
           <div className="flex-1" />
           <button
             onClick={() => router.push("/manage-x7k29q/inquiries")}
-            className="relative w-9 h-9 rounded-full hover:bg-black/5 flex items-center justify-center text-lg shrink-0"
+            className="relative w-9 h-9 rounded-full hover:bg-black/5 flex items-center justify-center shrink-0"
             aria-label="문의 알림"
             title={pending > 0 ? `답변 대기 문의 ${pending}건` : "새 문의 없음"}
           >
-            <span className={pending > 0 ? "animate-pulse" : ""}>🔔</span>
+            {/* 이모지 대신 손그림 느낌의 둥근 종 모양 아웃라인 SVG입니다. */}
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              aria-hidden="true"
+              className={`w-5 h-5 text-[#22201D] ${pending > 0 ? "animate-pulse" : ""}`}
+            >
+              <path
+                d="M12 3.2c-2.4 0-4.3 1.9-4.3 4.3v3.2c0 .8-.3 1.6-.9 2.2l-1 1.1c-.7.8-.2 2.1.9 2.2h10.6c1.1-.1 1.6-1.4.9-2.2l-1-1.1c-.6-.6-.9-1.4-.9-2.2V7.5c0-2.4-1.9-4.3-4.3-4.3Z"
+                stroke="currentColor"
+                strokeWidth="1.6"
+                strokeLinejoin="round"
+              />
+              <path
+                d="M9.6 18.3c.3 1.1 1.2 1.9 2.4 1.9s2.1-.8 2.4-1.9"
+                stroke="currentColor"
+                strokeWidth="1.6"
+                strokeLinecap="round"
+              />
+            </svg>
             {pending > 0 && (
               <span className="absolute top-0.5 right-0.5 min-w-[16px] h-4 px-[3px] text-[10px] leading-4 font-bold text-white bg-accent rounded-full text-center">
                 {pending > 9 ? "9+" : pending}
