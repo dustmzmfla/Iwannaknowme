@@ -9,18 +9,17 @@ import { useAuth } from "@/lib/auth/AuthProvider";
 interface NavItem {
   href: string;
   label: string;
-  icon: string;
   exact?: boolean;
   showBadge?: boolean;
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { href: "/manage-x7k29q", label: "대시보드", icon: "📊", exact: true },
-  { href: "/manage-x7k29q/users", label: "유저 관리", icon: "👥" },
-  { href: "/manage-x7k29q/inquiries", label: "문의사항", icon: "📮", showBadge: true },
-  { href: "/manage-x7k29q/questions", label: "카테고리·질문 관리", icon: "📝" },
-  { href: "/manage-x7k29q/coupons", label: "쿠폰 관리", icon: "🎟" },
-  { href: "/manage-x7k29q/admins", label: "관리자 계정", icon: "🔑" },
+  { href: "/manage-x7k29q", label: "대시보드", exact: true },
+  { href: "/manage-x7k29q/users", label: "유저 관리" },
+  { href: "/manage-x7k29q/inquiries", label: "문의사항", showBadge: true },
+  { href: "/manage-x7k29q/questions", label: "카테고리·질문 관리" },
+  { href: "/manage-x7k29q/coupons", label: "쿠폰 관리" },
+  { href: "/manage-x7k29q/admins", label: "관리자 계정" },
 ];
 
 const POLL_MS = 20000;
@@ -140,7 +139,6 @@ export function AdminShell({ children }: { children: ReactNode }) {
                   active ? "bg-white/10 text-white" : "text-white/60 hover:bg-white/5 hover:text-white/90"
                 }`}
               >
-                <span className="text-base leading-none shrink-0">{item.icon}</span>
                 <span className={collapsed ? "truncate sm:hidden" : "truncate"}>{item.label}</span>
                 {item.showBadge && pending > 0 && (
                   <span
