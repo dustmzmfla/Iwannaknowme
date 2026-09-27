@@ -33,7 +33,7 @@ export default function NewInquiryPage() {
 
   return (
     <section className="flex flex-col flex-1 px-[22px] py-[26px]">
-      <BackButton />
+      <BackButton fallbackHref="/inquiries" />
 
       <h2 className="font-display text-2xl mb-1.5">문의 작성</h2>
       <p className="text-[13.5px] text-ink-soft mb-5 leading-relaxed">

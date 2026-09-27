@@ -37,6 +37,14 @@ export default function BuildPage() {
     });
   }, []);
 
+  // middleware가 서버 단에서 이미 /build 접근을 막고 있지만(로그인 안 했으면
+  // /login으로 리다이렉트), 브라우저 뒤로/앞으로가기가 캐시된 화면을 그대로
+  // 보여주면서 미들웨어를 다시 타지 않는 경우가 있어서, 클라이언트에서도 로그인
+  // 상태를 한 번 더 확인해 이중으로 막습니다.
+  useEffect(() => {
+    if (!authLoading && !profile) router.replace("/login");
+  }, [authLoading, profile, router]);
+
   function toggle(q: string) {
     setSelected((prev) => {
       if (prev.includes(q)) return prev.filter((x) => x !== q);
@@ -82,6 +90,16 @@ export default function BuildPage() {
       setError("질문지를 발행하지 못했어요. 잠시 후 다시 시도해줘.");
       setPublishing(false);
     }
+  }
+
+  // 로그인 확인이 끝나기 전이거나 로그인이 안 되어 있으면(리다이렉트되는 중)
+  // 질문 선택 화면을 잠깐이라도 보여주지 않습니다.
+  if (authLoading || !profile) {
+    return (
+      <section className="flex flex-col flex-1 px-[22px] py-[26px] items-center justify-center">
+        <p className="text-ink-soft text-sm">불러오는 중...</p>
+      </section>
+    );
   }
 
   return (
