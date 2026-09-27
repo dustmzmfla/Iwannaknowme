@@ -71,6 +71,8 @@ export type AdminActionType =
   | "hide_response"
   | "restore_response"
   | "purge_response"
+  | "restore_questionnaire"
+  | "purge_questionnaire"
   | "suspend_user"
   | "unsuspend_user"
   | "grant_admin"

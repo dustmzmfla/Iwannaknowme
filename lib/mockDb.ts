@@ -213,6 +213,15 @@ export async function restoreQuestionnaire(questionnaireId: string) {
   if (error) throw error;
 }
 
+/** 질문자가 삭제(숨김)한 질문지를 관리자가 영구적으로 삭제합니다 — 이후 어떤 관리자도 복구할 수 없습니다. */
+export async function purgeQuestionnaire(questionnaireId: string) {
+  const supabase = createClient();
+  const { error } = await supabase.rpc("admin_purge_questionnaire", {
+    p_questionnaire_id: questionnaireId,
+  });
+  if (error) throw error;
+}
+
 export async function setUserSuspended(userId: string, suspended: boolean) {
   const supabase = createClient();
   const { error } = await supabase.rpc("admin_set_user_status", {
@@ -220,6 +229,18 @@ export async function setUserSuspended(userId: string, suspended: boolean) {
     p_suspended: suspended,
   });
   if (error) throw error;
+}
+
+/**
+ * 관리자가 유저의 계정을 완전히 삭제합니다. 단순 RPC가 아니라 서버 API 라우트를
+ * 거칩니다 — Supabase Admin API(auth.users에서 계정 자체를 제거)가 필요해서
+ * 서비스 롤 키를 쓰는 서버 쪽에서만 처리할 수 있기 때문입니다
+ * (app/api/admin/users/[userId]/delete/route.ts 참고). 되돌릴 수 없습니다.
+ */
+export async function deleteUser(userId: string) {
+  const res = await fetch(`/api/admin/users/${userId}/delete`, { method: "POST" });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(body?.error ?? "계정을 삭제하지 못했어요.");
 }
 
 // ---------------- 카테고리 / 질문 은행 관리 ----------------

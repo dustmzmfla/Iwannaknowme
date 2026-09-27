@@ -89,7 +89,9 @@ create table if not exists public.questionnaires (
   -- ⚠️(2026-09): 질문자가 "질문 삭제"를 누르면 실제로 행을 지우지 않고 이 값만
   -- 'hidden_by_user'로 바꿉니다 (소프트 삭제). 그래야 관리자 페이지에서 계속 조회하고
   -- 필요하면 복구할 수 있어요. responses.visibility와 같은 패턴입니다.
-  visibility text not null default 'active' check (visibility in ('active', 'hidden_by_user')),
+  -- 'purged'는 관리자가 영구 삭제한 상태 — responses.visibility와 동일한 패턴이며,
+  -- 이후 어떤 관리자도 되돌릴 수 없습니다.
+  visibility text not null default 'active' check (visibility in ('active', 'hidden_by_user', 'purged')),
   created_at timestamptz not null default now()
 );
 
@@ -99,7 +101,7 @@ create table if not exists public.questionnaires (
 alter table public.questionnaires add column if not exists visibility text not null default 'active';
 alter table public.questionnaires drop constraint if exists questionnaires_visibility_check;
 alter table public.questionnaires add constraint questionnaires_visibility_check
-  check (visibility in ('active', 'hidden_by_user'));
+  check (visibility in ('active', 'hidden_by_user', 'purged'));
 
 create table if not exists public.responses (
   id uuid primary key default gen_random_uuid(),
@@ -244,6 +246,22 @@ as $$
   );
 $$;
 
+-- 계정 정지(블랙리스트) 여부를 확인합니다. profiles.status가 'suspended'인 유저는
+-- 로그인 자체는 (기존 세션이 만료되기 전까지) 가능할 수 있어도, 아래 정책들에서
+-- 새 질문지 생성 등 실질적인 서비스 이용 행위를 막습니다. 미들웨어(lib/supabase/middleware.ts)에서도
+-- 세션을 끊지만, 여기 DB 레벨에서도 한 번 더 막아서 어떤 경로로 요청이 오든 안전하게 합니다.
+create or replace function public.is_suspended()
+returns boolean
+language sql
+security definer
+set search_path = public
+stable
+as $$
+  select exists (
+    select 1 from public.profiles where id = auth.uid() and status = 'suspended'
+  );
+$$;
+
 -- 정책을 다시 만들기 전에 전부 지웁니다 — 재실행해도 "policy already exists"
 -- 에러 없이 항상 최신 정의로 덮어써집니다 (Postgres는 정책에 create or replace가
 -- 없어서 drop if exists + create로 흉내 냅니다).
@@ -278,7 +296,7 @@ create policy "question_bank_select_all" on public.question_bank for select usin
 
 create policy "questionnaires_select_all" on public.questionnaires for select using (true);
 create policy "questionnaires_insert_own" on public.questionnaires
-  for insert to authenticated with check (owner_id = auth.uid());
+  for insert to authenticated with check (owner_id = auth.uid() and not public.is_suspended());
 -- ⚠️(2026-09): "질문 삭제"는 더 이상 실제 DELETE가 아니라 아래 user_delete_own_questionnaire
 -- RPC로 visibility만 바꾸는 소프트 삭제입니다 — 그래서 여기엔 delete 정책/권한을 두지
 -- 않았습니다 (RPC가 SECURITY DEFINER라 별도 grant 없이도 동작해요). 혹시 예전에
@@ -512,6 +530,19 @@ begin
   insert into public.admin_audit_log (actor_id, actor_label, action, target_type, target_id)
   values (auth.uid(), coalesce((select name from public.profiles where id = auth.uid()), '관리자'),
     'restore_questionnaire', 'questionnaire', p_questionnaire_id::text);
+end;
+$$;
+
+-- 질문자가 삭제(숨김)한 질문지를 관리자가 영구적으로 삭제합니다.
+-- admin_purge_response와 동일한 패턴 — 이후 어떤 관리자도 되돌릴 수 없습니다.
+create or replace function public.admin_purge_questionnaire(p_questionnaire_id uuid)
+returns void language plpgsql security definer set search_path = public as $$
+begin
+  if not public.is_admin() then raise exception '관리자만 가능합니다'; end if;
+  update public.questionnaires set visibility = 'purged' where id = p_questionnaire_id;
+  insert into public.admin_audit_log (actor_id, actor_label, action, target_type, target_id, note)
+  values (auth.uid(), coalesce((select name from public.profiles where id = auth.uid()), '관리자'),
+    'purge_questionnaire', 'questionnaire', p_questionnaire_id::text, '영구 삭제 — 이후 어떤 관리자도 복구할 수 없음');
 end;
 $$;
 
