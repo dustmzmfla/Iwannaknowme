@@ -42,7 +42,13 @@ export function useDragReorder<T>(
       height: rect.height + 8,
       midpoints,
     };
-    itemEl.setPointerCapture(e.pointerId);
+    // 포인터 캡처는 반드시 실제로 onPointerMove/onPointerUp 리스너가 붙어있는
+    // 그 요소(드래그 손잡이 자신, e.currentTarget)에 걸어야 합니다. 예전에는
+    // 부모인 itemEl에 캡처를 걸었는데, 캡처가 걸리면 이후 포인터 이벤트의
+    // target이 강제로 그 요소로 재지정되기 때문에(스펙상 "retargeted"), 손잡이는
+    // itemEl의 자식이라 이벤트가 손잡이까지 내려오지 못하고 move/up 핸들러가
+    // 아예 호출되지 않아서 드래그 자체가 동작하지 않는 버그가 있었습니다.
+    e.currentTarget.setPointerCapture(e.pointerId);
   }
 
   function moveDrag(
