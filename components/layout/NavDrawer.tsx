@@ -65,19 +65,34 @@ export function NavDrawer({
         role="dialog"
         aria-modal="true"
         aria-label="메뉴"
-        className={`fixed top-0 right-0 z-50 h-screen w-1/2 min-w-[240px] max-w-[380px] bg-paper-card shadow-2xl flex flex-col px-5 py-6 transition-transform duration-300 ease-out will-change-transform ${
+        className={`fixed top-0 right-0 z-50 h-screen w-1/2 min-w-[240px] max-w-[380px] bg-paper-card shadow-2xl flex flex-col overflow-y-auto px-5 py-6 transition-transform duration-300 ease-out will-change-transform ${
           open ? "translate-x-0" : "translate-x-full"
         }`}
       >
         <button
           onClick={onClose}
           aria-label="메뉴 닫기"
-          className="self-end w-9 h-9 rounded-full border-2 border-transparent bg-white flex items-center justify-center mb-4 active:scale-95 active:border-accent focus-visible:border-accent transition"
+          className="self-end shrink-0 w-9 h-9 rounded-full border-2 border-transparent bg-white flex items-center justify-center mb-4 active:scale-95 active:border-accent focus-visible:border-accent transition"
         >
           ✕
         </button>
 
-        <div className="flex flex-col items-center gap-2 mb-6 pb-5 border-b border-black/10 text-center">
+        <div className="flex flex-col items-center gap-2 mb-6 pb-5 border-b border-black/10 text-center shrink-0">
+          <span
+            className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
+              profile.membershipTier === "admin"
+                ? "bg-ink text-paper-card"
+                : profile.membershipTier === "paid"
+                  ? "bg-highlight/70 text-ink"
+                  : "bg-black/5 text-ink-soft"
+            }`}
+          >
+            {profile.membershipTier === "admin"
+              ? "관리자"
+              : profile.membershipTier === "paid"
+                ? "유료회원"
+                : "일반회원"}
+          </span>
           {profile.avatarUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
@@ -92,28 +107,10 @@ export function NavDrawer({
           )}
           <div className="min-w-0 max-w-full">
             <p className="font-display text-lg leading-tight truncate">{profile.name}</p>
-            <p className="text-xs text-ink-soft flex items-center justify-center gap-1.5 mt-1">
-              카카오로 로그인함
-              <span
-                className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
-                  profile.membershipTier === "admin"
-                    ? "bg-ink text-paper-card"
-                    : profile.membershipTier === "paid"
-                      ? "bg-highlight/70 text-ink"
-                      : "bg-black/5 text-ink-soft"
-                }`}
-              >
-                {profile.membershipTier === "admin"
-                  ? "관리자"
-                  : profile.membershipTier === "paid"
-                    ? "유료회원"
-                    : "일반회원"}
-              </span>
-            </p>
           </div>
         </div>
 
-        <nav className="flex flex-col gap-1.5">
+        <nav className="flex flex-col gap-1.5 shrink-0">
           <button
             onClick={() => go("/build")}
             className="text-left font-bold text-[14.5px] py-3 px-3 rounded-xl hover:bg-black/5 active:bg-black/10 transition"
@@ -148,7 +145,7 @@ export function NavDrawer({
           )}
         </nav>
 
-        <div className="mt-auto pt-5 border-t border-black/10 flex flex-col gap-1">
+        <div className="mt-auto pt-5 border-t border-black/10 flex flex-col gap-1 shrink-0">
           <button
             onClick={handleLogout}
             className="text-left text-[13px] font-bold text-ink-soft py-2.5 px-3 rounded-xl hover:bg-black/5 transition"

@@ -13,7 +13,6 @@ import {
   QUESTION_POOL,
   loadQuestionPool,
 } from "@/lib/questionPool";
-import { readJSON, writeJSON } from "@/lib/storage";
 import { useAuth } from "@/lib/auth/AuthProvider";
 import { publishQuestionnaire } from "@/lib/creatorFlow";
 import type { Category, QuestionPool } from "@/lib/types";
@@ -27,19 +26,16 @@ export default function BuildPage() {
   const [selected, setSelected] = useState<string[]>([]);
   const [publishing, setPublishing] = useState(false);
   const [error, setError] = useState("");
+  const [customOpen, setCustomOpen] = useState(false);
+  const [customText, setCustomText] = useState("");
 
   useEffect(() => {
-    setSelected(readJSON<string[]>("iwkm_draft_selected", []));
     loadQuestionPool().then(({ categories: c, pool: p }) => {
       setCategories(c);
       setPool(p);
       setCategory((prev) => (c.includes(prev) ? prev : c[0]));
     });
   }, []);
-
-  useEffect(() => {
-    writeJSON("iwkm_draft_selected", selected);
-  }, [selected]);
 
   function toggle(q: string) {
     setSelected((prev) => {
@@ -58,6 +54,16 @@ export default function BuildPage() {
     });
   }
 
+  // 카테고리에 없는 질문을 직접 입력해서 추가합니다. 등록 후에는 다시
+  // "직접 입력하기" 버튼으로 돌아가서 계속 다른 질문을 고르거나 또 입력할 수 있어요.
+  function handleAddCustom() {
+    const text = customText.trim();
+    if (!text || selected.length >= MAX_QUESTIONS) return;
+    setSelected((prev) => (prev.includes(text) ? prev : [...prev, text]));
+    setCustomText("");
+    setCustomOpen(false);
+  }
+
   const canProceed = selected.length >= MIN_QUESTIONS;
   const name = authLoading ? "" : profile?.name ?? "친구";
   const questionsInCategory = pool[category] ?? [];
@@ -71,9 +77,6 @@ export default function BuildPage() {
     setError("");
     try {
       const id = await publishQuestionnaire(profile?.name ?? "친구", selected);
-      // 발행이 끝나면 임시 저장해뒀던 draft를 지워야, 다음에 "새 질문 만들기"를
-      // 눌렀을 때 방금 만든 질문이 그대로 선택된 채로 남아있지 않습니다.
-      writeJSON("iwkm_draft_selected", []);
       router.push(`/share/${id}`);
     } catch {
       setError("질문지를 발행하지 못했어요. 잠시 후 다시 시도해줘.");
@@ -132,6 +135,40 @@ export default function BuildPage() {
             );
           })}
         </div>
+      </Card>
+
+      <Card>
+        {customOpen ? (
+          <div className="flex gap-2">
+            <input
+              autoFocus
+              value={customText}
+              onChange={(e) => setCustomText(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleAddCustom()}
+              placeholder="궁금한 질문을 직접 적어줘"
+              maxLength={80}
+              className="flex-1 min-w-0 bg-white border border-black/15 rounded-xl px-3.5 py-3 text-sm focus:border-accent"
+            />
+            <Button
+              type="button"
+              small
+              disabled={!customText.trim() || selected.length >= MAX_QUESTIONS}
+              onClick={handleAddCustom}
+              className="flex-none"
+            >
+              등록하기
+            </Button>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setCustomOpen(true)}
+            disabled={selected.length >= MAX_QUESTIONS}
+            className="w-full text-center text-[13px] font-bold text-ink-soft py-3 rounded-xl border border-dashed border-black/20 hover:border-black/35 hover:text-ink transition disabled:opacity-40"
+          >
+            + 직접 입력하기
+          </button>
+        )}
       </Card>
 
       <Card>

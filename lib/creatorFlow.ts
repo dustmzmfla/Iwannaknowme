@@ -10,6 +10,7 @@ export interface PublishedQuestionnaire {
   creatorName: string;
   questions: string[];
   createdAt: string;
+  ownerId: string;
 }
 
 export interface SubmittedResponse {
@@ -50,7 +51,7 @@ export async function getQuestionnaire(id: string): Promise<PublishedQuestionnai
   // 화면에서는 "없는 질문지"처럼 취급합니다 (관리자 페이지에서는 계속 조회/복구 가능).
   const { data } = await supabase
     .from("questionnaires")
-    .select("id, creator_name, questions, created_at")
+    .select("id, creator_name, questions, created_at, owner_id")
     .eq("id", id)
     .eq("visibility", "active")
     .maybeSingle();
@@ -60,6 +61,7 @@ export async function getQuestionnaire(id: string): Promise<PublishedQuestionnai
     creatorName: data.creator_name,
     questions: data.questions as string[],
     createdAt: data.created_at,
+    ownerId: data.owner_id,
   };
 }
 

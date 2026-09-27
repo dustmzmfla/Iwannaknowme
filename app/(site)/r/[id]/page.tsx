@@ -6,6 +6,7 @@ import { BackButton } from "@/components/ui/BackButton";
 import { Button } from "@/components/ui/Button";
 import { getQuestionnaire, hasResponded, type PublishedQuestionnaire } from "@/lib/creatorFlow";
 import { writeJSON } from "@/lib/storage";
+import { useAuth } from "@/lib/auth/AuthProvider";
 
 const DURATIONS = ["1년 미만", "1년", "2년", "3년", "4년", "5년 이상"];
 
@@ -16,6 +17,7 @@ const DURATIONS = ["1년 미만", "1년", "2년", "3년", "4년", "5년 이상"]
 export default function RespondentEntryPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
+  const { profile, loading: authLoading } = useAuth();
   const [questionnaire, setQuestionnaire] = useState<PublishedQuestionnaire | null | undefined>(
     undefined
   );
@@ -31,7 +33,15 @@ export default function RespondentEntryPage() {
     });
   }, [params.id]);
 
-  if (questionnaire === undefined) {
+  // 질문지를 만든 본인이 자기 링크로 들어온 경우 - 답변을 작성하는 대신 받은
+  // 답변을 보는 화면으로 보냅니다 (로그인/질문지 조회가 둘 다 끝난 뒤에 판단).
+  const isOwnLink = !authLoading && !!profile && !!questionnaire && questionnaire.ownerId === profile.id;
+
+  useEffect(() => {
+    if (isOwnLink) router.replace("/my/responses");
+  }, [isOwnLink, router]);
+
+  if (questionnaire === undefined || authLoading || isOwnLink) {
     return (
       <section className="flex flex-col flex-1 px-[22px] py-[26px] items-center justify-center">
         <p className="text-ink-soft text-sm">불러오는 중...</p>
