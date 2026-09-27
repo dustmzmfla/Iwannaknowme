@@ -147,17 +147,19 @@ export default function BuildPage() {
               onKeyDown={(e) => e.key === "Enter" && handleAddCustom()}
               placeholder="궁금한 질문을 직접 적어줘"
               maxLength={80}
-              className="flex-1 min-w-0 bg-white border border-black/15 rounded-xl px-3.5 py-3 text-sm focus:border-accent"
+              className="flex-1 min-w-0 bg-white border border-black/15 rounded-xl px-3.5 py-2.5 text-sm focus:border-accent"
             />
-            <Button
+            {/* 관리자 페이지의 카테고리 추가 버튼과 같은 크기의 작은 버튼입니다.
+                공용 Button 컴포넌트의 small 옵션은 기본 w-full과 타일윈드 클래스
+                순서 문제로 폭이 제대로 줄어들지 않아 인풋이 눌려 보였습니다. */}
+            <button
               type="button"
-              small
               disabled={!customText.trim() || selected.length >= MAX_QUESTIONS}
               onClick={handleAddCustom}
-              className="flex-none"
+              className="flex-none px-4 py-2.5 rounded-xl bg-ink text-paper-card text-sm font-bold disabled:opacity-40"
             >
               등록하기
-            </Button>
+            </button>
           </div>
         ) : (
           <button
