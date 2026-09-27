@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   getUser,
@@ -11,7 +11,9 @@ import {
   restoreResponse,
   purgeResponse,
   restoreQuestionnaire,
+  purgeQuestionnaire,
   setUserSuspended,
+  deleteUser,
   listAuditLog,
   addAdmin,
   removeAdmin,
@@ -80,6 +82,7 @@ function AccordionSection({
 // 경고 없이 동일하게 동작하도록 했습니다.
 export default function AdminUserDetailPage() {
   const params = useParams<{ userId: string }>();
+  const router = useRouter();
   const [user, setUser] = useState<AppUser | null>(null);
 
   // 유저 한 명이 "새 질문 생성"으로 질문지를 여러 개 만들 수 있어서, 질문지(메인 질문)
@@ -107,6 +110,10 @@ export default function AdminUserDetailPage() {
   const [responsesPage, setResponsesPage] = useState(1);
   const [selectedResponse, setSelectedResponse] = useState<QuestionResponse | null>(null);
   const [restoringQuestionnaireId, setRestoringQuestionnaireId] = useState<string | null>(null);
+  const [purgeQuestionnaireTarget, setPurgeQuestionnaireTarget] = useState<Questionnaire | null>(null);
+  const [purgingQuestionnaire, setPurgingQuestionnaire] = useState(false);
+  const [confirmDeleteUser, setConfirmDeleteUser] = useState(false);
+  const [deletingUser, setDeletingUser] = useState(false);
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -125,8 +132,11 @@ export default function AdminUserDetailPage() {
     for (const [id, resps] of pairs) map[id] = resps;
     setResponsesByQuestionnaire(map);
 
+    // 영구 삭제된 질문지는 기본 선택 대상에서 제외합니다 (더 이상 볼 내용이
+    // 없으니, 선택돼있던 게 방금 영구 삭제됐다면 다른 걸로 넘어갑니다).
+    const selectableQns = qns.filter((q) => q.visibility !== "purged");
     setSelectedQuestionnaireId((prev) =>
-      prev && qns.some((q) => q.id === prev) ? prev : qns[0]?.id ?? null
+      prev && selectableQns.some((q) => q.id === prev) ? prev : selectableQns[0]?.id ?? null
     );
 
     const allResponseIds = pairs.flatMap(([, resps]) => resps.map((r) => r.id));
@@ -178,7 +188,8 @@ export default function AdminUserDetailPage() {
     responsesPage * RESPONSES_PAGE_SIZE
   );
 
-  const pagedQuestionnaires = questionnaires.slice(
+  const visibleQuestionnaires = questionnaires.filter((q) => q.visibility !== "purged");
+  const pagedQuestionnaires = visibleQuestionnaires.slice(
     (questionnairesPage - 1) * QUESTIONNAIRES_PAGE_SIZE,
     questionnairesPage * QUESTIONNAIRES_PAGE_SIZE
   );
@@ -198,6 +209,33 @@ export default function AdminUserDetailPage() {
       alert("복구하지 못했어요. 잠시 후 다시 시도해줘.");
     } finally {
       setRestoringQuestionnaireId(null);
+    }
+  }
+
+  async function handlePurgeQuestionnaire() {
+    if (!purgeQuestionnaireTarget || purgingQuestionnaire) return;
+    setPurgingQuestionnaire(true);
+    try {
+      await purgeQuestionnaire(purgeQuestionnaireTarget.id);
+      setPurgeQuestionnaireTarget(null);
+      await refresh();
+    } catch {
+      alert("영구 삭제하지 못했어요. 잠시 후 다시 시도해줘.");
+    } finally {
+      setPurgingQuestionnaire(false);
+    }
+  }
+
+  async function handleDeleteUser() {
+    if (deletingUser || !user) return;
+    setDeletingUser(true);
+    try {
+      await deleteUser(user.id);
+      setConfirmDeleteUser(false);
+      router.replace("/manage-x7k29q");
+    } catch (e: any) {
+      alert(e?.message ?? "계정을 삭제하지 못했어요. 잠시 후 다시 시도해줘.");
+      setDeletingUser(false);
     }
   }
 
@@ -222,6 +260,12 @@ export default function AdminUserDetailPage() {
             }`}
           >
             {user.role === "admin" ? "관리자 해제" : "관리자로 지정"}
+          </button>
+          <button
+            onClick={() => setConfirmDeleteUser(true)}
+            className="text-xs font-bold px-3 py-1.5 rounded-lg bg-accent text-white"
+          >
+            유저 삭제
           </button>
         </div>
       </div>
@@ -307,10 +351,17 @@ export default function AdminUserDetailPage() {
         </div>
       </div>
 
-      {questionnaires.length > 0 && selectedQuestionnaire ? (
+      {visibleQuestionnaires.length > 0 && selectedQuestionnaire ? (
         <>
           <AccordionSection
-            title={`작성한 질문 (질문지 ${questionnaires.length}개)`}
+            title={
+              <>
+                작성한 질문 (질문지 {visibleQuestionnaires.length}개
+                {questionnaires.length !== visibleQuestionnaires.length &&
+                  `, 영구삭제 ${questionnaires.length - visibleQuestionnaires.length}개 별도`}
+                )
+              </>
+            }
             open={questionsOpen}
             onToggle={() => setQuestionsOpen((v) => !v)}
           >
@@ -377,6 +428,16 @@ export default function AdminUserDetailPage() {
                               >
                                 {restoringQuestionnaireId === q.id ? "복구 중..." : "복구"}
                               </button>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setPurgeQuestionnaireTarget(q);
+                                }}
+                                className="text-xs font-bold px-2.5 py-1 rounded-lg border border-accent/40 text-accent whitespace-nowrap"
+                              >
+                                영구 삭제
+                              </button>
                             </div>
                           ) : (
                             <span className="text-xs font-bold text-green-700 bg-green-100 px-2 py-0.5 rounded-full">
@@ -393,7 +454,7 @@ export default function AdminUserDetailPage() {
             <Pagination
               page={questionnairesPage}
               pageSize={QUESTIONNAIRES_PAGE_SIZE}
-              total={questionnaires.length}
+              total={visibleQuestionnaires.length}
               onChange={setQuestionnairesPage}
             />
           </AccordionSection>
@@ -547,7 +608,7 @@ export default function AdminUserDetailPage() {
         description={
           user.status === "suspended"
             ? "이 유저는 다시 정상적으로 서비스를 이용할 수 있게 됩니다."
-            : "정지된 유저는 로그인은 가능하지만 새 질문지 생성 및 링크 공유가 제한됩니다."
+            : "정지된 유저는 접속 시 세션이 강제 종료되고 다시 로그인할 수 없습니다 (블랙리스트 등록). 계정 자체를 지우려면 '유저 삭제'를 사용해주세요."
         }
         confirmLabel={user.status === "suspended" ? "정지 해제" : "정지하기"}
         danger={user.status !== "suspended"}
@@ -592,6 +653,28 @@ export default function AdminUserDetailPage() {
           }
         }}
       />
+
+      <ConfirmDialog
+        open={!!purgeQuestionnaireTarget}
+        title="정말 영구 삭제할까요?"
+        description="영구 삭제하면 이 질문지와 관련 데이터는 관리자도 다시 복구할 수 없습니다. 신중하게 결정해주세요."
+        confirmLabel="영구 삭제"
+        danger
+        requireTypedConfirm="영구삭제"
+        onCancel={() => setPurgeQuestionnaireTarget(null)}
+        onConfirm={handlePurgeQuestionnaire}
+      />
+
+      <ConfirmDialog
+        open={confirmDeleteUser}
+        title="계정을 완전히 삭제할까요?"
+        description={`'${user.name}' 계정과 로그인 정보, 그리고 이 유저가 만든 질문지·받은 답변까지 전부 완전히 삭제됩니다 (연결된 데이터라 함께 지워져요). 관리자도 다시 복구할 수 없습니다. 계정만 막고 데이터는 남기려면 취소하고 '계정 정지'를 사용해주세요.`}
+        confirmLabel="계정 삭제"
+        danger
+        requireTypedConfirm="계정삭제"
+        onCancel={() => setConfirmDeleteUser(false)}
+        onConfirm={handleDeleteUser}
+      />
     </div>
   );
 }
@@ -604,6 +687,12 @@ function actionLabel(action: AdminAuditLog["action"]) {
       return "답변 복구";
     case "purge_response":
       return "답변 영구삭제";
+    case "hide_questionnaire":
+      return "질문지 숨김";
+    case "restore_questionnaire":
+      return "질문지 복구";
+    case "purge_questionnaire":
+      return "질문지 영구삭제";
     case "suspend_user":
       return "계정 정지";
     case "unsuspend_user":

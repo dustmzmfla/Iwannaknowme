@@ -63,7 +63,14 @@ export default function AdminQuestionsPage() {
       const next = [...prev];
       const [moved] = next.splice(from, 1);
       next.splice(to, 0, moved);
-      reorderCategories(next.map((c) => c.id)).catch(() => refresh());
+      reorderCategories(next.map((c) => c.id)).catch((e) => {
+        // 저장에 실패하면 화면을 서버 상태로 되돌리기 전에, 실패했다는 걸
+        // 반드시 알려줍니다 - 예전엔 조용히 되돌아가서 "드래그는 되는데
+        // 실제로 적용은 안 된다"는 것처럼 보였습니다.
+        console.error("카테고리 순서 저장 실패:", e);
+        alert(`카테고리 순서를 저장하지 못했어요: ${e?.message ?? e}`);
+        refresh();
+      });
       return next;
     });
   }
@@ -79,7 +86,14 @@ export default function AdminQuestionsPage() {
       const reordered = [...catItems];
       const [moved] = reordered.splice(from, 1);
       reordered.splice(to, 0, moved);
-      reorderQuestions(categoryId, reordered.map((q) => q.id)).catch(() => refresh());
+      reorderQuestions(categoryId, reordered.map((q) => q.id)).catch((e) => {
+        // 저장에 실패하면 화면을 서버 상태로 되돌리기 전에, 실패했다는 걸
+        // 반드시 알려줍니다 - 예전엔 조용히 되돌아가서 "드래그는 되는데
+        // 실제로 적용은 안 된다"는 것처럼 보였습니다.
+        console.error("질문 순서 저장 실패:", e);
+        alert(`질문 순서를 저장하지 못했어요: ${e?.message ?? e}`);
+        refresh();
+      });
       return [...others, ...reordered];
     });
   }

@@ -33,7 +33,8 @@ export interface AppUser {
 /** 한 사용자가 만든 질문지 */
 export type QuestionnaireVisibility =
   | "active" // 정상 노출
-  | "hidden_by_user"; // 질문자가 "질문 삭제" 클릭 → 질문자 화면에서만 숨김, 관리자는 계속 조회/복구 가능
+  | "hidden_by_user" // 질문자가 "질문 삭제" 클릭 → 질문자 화면에서만 숨김, 관리자는 계속 조회/복구 가능
+  | "purged"; // 관리자가 영구 삭제 — 이후 어떤 관리자도 복구할 수 없음 (responses.visibility와 동일한 패턴)
 
 export interface Questionnaire {
   id: string;
@@ -71,6 +72,7 @@ export type AdminActionType =
   | "hide_response"
   | "restore_response"
   | "purge_response"
+  | "hide_questionnaire"
   | "restore_questionnaire"
   | "purge_questionnaire"
   | "suspend_user"
