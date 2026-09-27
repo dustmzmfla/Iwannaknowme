@@ -623,6 +623,40 @@ begin
 end;
 $$;
 
+create or replace function public.admin_update_category(p_category_id uuid, p_name text)
+returns void language plpgsql security definer set search_path = public as $$
+begin
+  if not public.is_admin() then raise exception '관리자만 가능합니다'; end if;
+  update public.categories set name = p_name where id = p_category_id;
+end;
+$$;
+
+-- 관리자 페이지에서 카테고리를 드래그로 재정렬하면 전체 순서(uuid 배열)를
+-- 한 번에 받아서 sort_order를 그 순서대로 다시 매깁니다.
+create or replace function public.admin_reorder_categories(p_ids uuid[])
+returns void language plpgsql security definer set search_path = public as $$
+begin
+  if not public.is_admin() then raise exception '관리자만 가능합니다'; end if;
+  update public.categories c
+    set sort_order = t.ord - 1
+    from unnest(p_ids) with ordinality as t(id, ord)
+    where c.id = t.id;
+end;
+$$;
+
+-- 카테고리 하나 안에서 질문을 드래그로 재정렬할 때 씁니다. category_id도 함께
+-- 검증해서 다른 카테고리의 질문 id가 섞여 들어와도 조용히 무시합니다.
+create or replace function public.admin_reorder_questions(p_category_id uuid, p_ids uuid[])
+returns void language plpgsql security definer set search_path = public as $$
+begin
+  if not public.is_admin() then raise exception '관리자만 가능합니다'; end if;
+  update public.question_bank q
+    set sort_order = t.ord - 1
+    from unnest(p_ids) with ordinality as t(id, ord)
+    where q.id = t.id and q.category_id = p_category_id;
+end;
+$$;
+
 -- 로그인 유저는 auth.uid() 기준으로 하루 1번만 카운트되도록 daily_visit_log로
 -- 중복을 막습니다 (다른 브라우저/기기로 재접속해도 재카운트되지 않음). 비로그인
 -- 방문자는 안정적인 식별자가 없어서 기존처럼 호출될 때마다 카운트됩니다.

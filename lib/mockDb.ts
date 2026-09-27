@@ -265,6 +265,21 @@ export async function deleteCategory(categoryId: string) {
   if (error) throw error;
 }
 
+export async function updateCategory(categoryId: string, name: string) {
+  const supabase = createClient();
+  const { error } = await supabase.rpc("admin_update_category", {
+    p_category_id: categoryId,
+    p_name: name,
+  });
+  if (error) throw error;
+}
+
+export async function reorderCategories(orderedIds: string[]) {
+  const supabase = createClient();
+  const { error } = await supabase.rpc("admin_reorder_categories", { p_ids: orderedIds });
+  if (error) throw error;
+}
+
 export async function addQuestion(categoryId: string, text: string): Promise<string> {
   const supabase = createClient();
   const { data, error } = await supabase.rpc("admin_add_question", {
@@ -288,6 +303,15 @@ export async function updateQuestion(questionId: string, text: string, isActive:
 export async function deleteQuestion(questionId: string) {
   const supabase = createClient();
   const { error } = await supabase.rpc("admin_delete_question", { p_question_id: questionId });
+  if (error) throw error;
+}
+
+export async function reorderQuestions(categoryId: string, orderedIds: string[]) {
+  const supabase = createClient();
+  const { error } = await supabase.rpc("admin_reorder_questions", {
+    p_category_id: categoryId,
+    p_ids: orderedIds,
+  });
   if (error) throw error;
 }
 

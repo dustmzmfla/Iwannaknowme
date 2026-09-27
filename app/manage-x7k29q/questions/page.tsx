@@ -1,16 +1,21 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   listCategories,
   listQuestionBank,
   addCategory,
+  updateCategory,
+  reorderCategories,
   deleteCategory,
   addQuestion,
   updateQuestion,
+  reorderQuestions,
   deleteQuestion,
 } from "@/lib/mockDb";
 import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
+import { QuestionListEditor } from "@/components/admin/QuestionListEditor";
+import { useDragReorder } from "@/lib/useDragReorder";
 import type { QuestionBankItem, QuestionCategory } from "@/lib/types";
 
 export default function AdminQuestionsPage() {
@@ -21,6 +26,13 @@ export default function AdminQuestionsPage() {
   const [newQuestionByCategory, setNewQuestionByCategory] = useState<Record<string, string>>({});
   const [deleteCategoryTarget, setDeleteCategoryTarget] = useState<QuestionCategory | null>(null);
   const [busy, setBusy] = useState(false);
+
+  // 아코디언 접힌 카테고리 id 목록입니다. 기본은 전부 펼쳐진 상태입니다.
+  const [collapsedIds, setCollapsedIds] = useState<Set<string>>(new Set());
+  // 지금 이름을 수정 중인 카테고리(있으면 그 id/입력값)입니다.
+  const [editingCategory, setEditingCategory] = useState<{ id: string; name: string } | null>(null);
+
+  const categoryListRef = useRef<HTMLDivElement>(null);
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -33,6 +45,53 @@ export default function AdminQuestionsPage() {
   useEffect(() => {
     refresh();
   }, [refresh]);
+
+  function toggleCollapsed(categoryId: string) {
+    setCollapsedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(categoryId)) next.delete(categoryId);
+      else next.add(categoryId);
+      return next;
+    });
+  }
+
+  // 카테고리 순서를 드래그로 바꿉니다 - 화면은 바로 반영(낙관적 업데이트)하고,
+  // 실제 저장은 뒤에서 admin_reorder_categories RPC로 처리합니다. 저장에
+  // 실패하면 서버 상태로 다시 불러와 화면을 원래대로 되돌립니다.
+  function handleReorderCategories(from: number, to: number) {
+    setCategories((prev) => {
+      const next = [...prev];
+      const [moved] = next.splice(from, 1);
+      next.splice(to, 0, moved);
+      reorderCategories(next.map((c) => c.id)).catch(() => refresh());
+      return next;
+    });
+  }
+
+  // 한 카테고리 안에서 질문 순서를 드래그로 바꿉니다. questions는 전체 카테고리를
+  // 합친 하나의 배열이라, 이 카테고리에 속한 항목들만 골라 순서를 바꾼 뒤 나머지와
+  // 합칩니다(다른 카테고리 항목들의 배열상 위치는 렌더링에 영향을 주지 않아요 -
+  // 항상 categoryId로 다시 필터링해서 보여주기 때문입니다).
+  function handleReorderQuestions(categoryId: string, from: number, to: number) {
+    setQuestions((prev) => {
+      const catItems = prev.filter((q) => q.categoryId === categoryId);
+      const others = prev.filter((q) => q.categoryId !== categoryId);
+      const reordered = [...catItems];
+      const [moved] = reordered.splice(from, 1);
+      reordered.splice(to, 0, moved);
+      reorderQuestions(categoryId, reordered.map((q) => q.id)).catch(() => refresh());
+      return [...others, ...reordered];
+    });
+  }
+
+  function getCategorySiblings(): HTMLElement[] {
+    return Array.from(categoryListRef.current?.querySelectorAll("[data-cat-item]") ?? []) as HTMLElement[];
+  }
+
+  const { startDrag: startCatDrag, moveDrag: moveCatDrag, endDrag: endCatDrag } = useDragReorder(
+    categories,
+    handleReorderCategories
+  );
 
   async function handleAddCategory() {
     const name = newCategory.trim();
@@ -49,6 +108,25 @@ export default function AdminQuestionsPage() {
     }
   }
 
+  async function handleSaveCategoryName() {
+    if (!editingCategory) return;
+    const name = editingCategory.name.trim();
+    if (!name) {
+      setEditingCategory(null);
+      return;
+    }
+    setBusy(true);
+    try {
+      await updateCategory(editingCategory.id, name);
+      setEditingCategory(null);
+      await refresh();
+    } catch (e: any) {
+      alert(e?.message ?? "카테고리 이름을 수정하지 못했어요.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function handleAddQuestion(categoryId: string) {
     const text = (newQuestionByCategory[categoryId] ?? "").trim();
     if (!text || busy) return;
@@ -59,6 +137,18 @@ export default function AdminQuestionsPage() {
       await refresh();
     } catch (e: any) {
       alert(e?.message ?? "질문을 추가하지 못했어요.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleUpdateQuestionText(q: QuestionBankItem, newText: string) {
+    setBusy(true);
+    try {
+      await updateQuestion(q.id, newText, q.isActive);
+      await refresh();
+    } catch (e: any) {
+      alert(e?.message ?? "질문을 수정하지 못했어요.");
     } finally {
       setBusy(false);
     }
@@ -131,72 +221,149 @@ export default function AdminQuestionsPage() {
 
       {loading && <p className="text-ink-soft">불러오는 중...</p>}
 
-      {!loading &&
-        categories.map((cat) => {
-          const items = questions.filter((q) => q.categoryId === cat.id);
-          return (
-            <div key={cat.id} className="bg-white rounded-2xl border border-black/10 p-5 mb-4">
-              <div className="flex items-center justify-between gap-2 mb-3">
-                <h2 className="flex-1 min-w-0 truncate font-bold text-lg">
-                  {cat.name} <span className="text-sm text-ink-soft font-normal">({items.length}개)</span>
-                </h2>
-                <button
-                  onClick={() => setDeleteCategoryTarget(cat)}
-                  className="shrink-0 whitespace-nowrap text-xs font-bold text-accent px-2.5 py-1 rounded-lg border border-accent/40"
-                >
-                  카테고리 삭제
-                </button>
-              </div>
-
-              <ul className="space-y-1.5 mb-3">
-                {items.map((q) => (
-                  <li
-                    key={q.id}
-                    className={`flex items-center justify-between gap-2 rounded-xl px-3 py-2 text-sm ${
-                      q.isActive ? "bg-paper-card2" : "bg-black/[0.03] text-ink-soft line-through"
-                    }`}
+      <div ref={categoryListRef}>
+        {!loading &&
+          categories.map((cat, i) => {
+            const items = questions.filter((q) => q.categoryId === cat.id);
+            const collapsed = collapsedIds.has(cat.id);
+            const isEditingThis = editingCategory?.id === cat.id;
+            return (
+              <div
+                key={cat.id}
+                data-cat-item
+                className="bg-white rounded-2xl border border-black/10 p-5 mb-4 will-change-transform"
+                style={{ transition: "transform 220ms cubic-bezier(.2,.8,.2,1)" }}
+              >
+                <div className="flex items-center gap-2 mb-3">
+                  <span
+                    className="text-ink-soft text-base px-0.5 cursor-grab touch-none shrink-0"
+                    onPointerDown={(e) => {
+                      if (isEditingThis) return;
+                      const itemEl = e.currentTarget.closest("[data-cat-item]") as HTMLElement;
+                      startCatDrag(e, i, itemEl, getCategorySiblings());
+                      itemEl.style.transition = "none";
+                      itemEl.style.zIndex = "20";
+                    }}
+                    onPointerMove={(e) => {
+                      const itemEl = e.currentTarget.closest("[data-cat-item]") as HTMLElement;
+                      moveCatDrag(e, itemEl, getCategorySiblings());
+                    }}
+                    onPointerUp={(e) => {
+                      const itemEl = e.currentTarget.closest("[data-cat-item]") as HTMLElement;
+                      itemEl.style.transition = "";
+                      itemEl.style.zIndex = "";
+                      endCatDrag(itemEl, getCategorySiblings());
+                    }}
                   >
-                    <span className="flex-1 min-w-0 break-words">{q.text}</span>
-                    <button
-                      onClick={() => handleToggleActive(q)}
-                      className="text-xs font-bold px-2 py-1 rounded-lg border border-black/15 shrink-0"
-                    >
-                      {q.isActive ? "비활성화" : "활성화"}
-                    </button>
-                    <button
-                      onClick={() => handleDeleteQuestion(q)}
-                      className="text-xs font-bold px-2 py-1 rounded-lg border border-accent/40 text-accent shrink-0"
-                    >
-                      삭제
-                    </button>
-                  </li>
-                ))}
-                {items.length === 0 && (
-                  <li className="text-sm text-ink-soft py-2">아직 질문이 없어요.</li>
-                )}
-              </ul>
+                    ⠿
+                  </span>
 
-              <div className="flex gap-2">
-                <input
-                  value={newQuestionByCategory[cat.id] ?? ""}
-                  onChange={(e) =>
-                    setNewQuestionByCategory((prev) => ({ ...prev, [cat.id]: e.target.value }))
-                  }
-                  onKeyDown={(e) => e.key === "Enter" && handleAddQuestion(cat.id)}
-                  placeholder="새 질문 입력"
-                  className="flex-1 min-w-0 border border-black/15 rounded-xl px-3.5 py-2 text-sm"
-                />
-                <button
-                  onClick={() => handleAddQuestion(cat.id)}
-                  disabled={busy || !(newQuestionByCategory[cat.id] ?? "").trim()}
-                  className="flex-none px-3.5 py-2 rounded-xl bg-white border border-black/15 text-sm font-bold disabled:opacity-40"
+                  <button
+                    type="button"
+                    onClick={() => toggleCollapsed(cat.id)}
+                    aria-label={collapsed ? "카테고리 펼치기" : "카테고리 접기"}
+                    className="shrink-0 w-6 h-6 flex items-center justify-center text-ink-soft"
+                  >
+                    <svg
+                      viewBox="0 0 20 20"
+                      width={14}
+                      height={14}
+                      className={`transition-transform duration-200 ${collapsed ? "-rotate-90" : ""}`}
+                    >
+                      <path
+                        d="M5 7l5 5 5-5"
+                        stroke="currentColor"
+                        strokeWidth={2}
+                        fill="none"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  </button>
+
+                  {isEditingThis ? (
+                    <>
+                      <input
+                        autoFocus
+                        value={editingCategory.name}
+                        onChange={(e) => setEditingCategory({ id: cat.id, name: e.target.value })}
+                        onKeyDown={(e) => e.key === "Enter" && handleSaveCategoryName()}
+                        className="flex-1 min-w-0 bg-white border border-black/15 rounded-lg px-2 py-1 font-bold text-lg"
+                      />
+                      <button
+                        onClick={handleSaveCategoryName}
+                        disabled={busy}
+                        className="shrink-0 text-xs font-bold px-2.5 py-1 rounded-lg bg-ink text-paper-card"
+                      >
+                        저장
+                      </button>
+                      <button
+                        onClick={() => setEditingCategory(null)}
+                        className="shrink-0 text-xs font-bold px-2.5 py-1 rounded-lg border border-black/15"
+                      >
+                        취소
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <h2 className="flex-1 min-w-0 truncate font-bold text-lg">
+                        {cat.name}{" "}
+                        <span className="text-sm text-ink-soft font-normal">({items.length}개)</span>
+                      </h2>
+                      <button
+                        onClick={() => setEditingCategory({ id: cat.id, name: cat.name })}
+                        className="shrink-0 whitespace-nowrap text-xs font-bold px-2.5 py-1 rounded-lg border border-black/15"
+                      >
+                        수정
+                      </button>
+                      <button
+                        onClick={() => setDeleteCategoryTarget(cat)}
+                        className="shrink-0 whitespace-nowrap text-xs font-bold text-accent px-2.5 py-1 rounded-lg border border-accent/40"
+                      >
+                        카테고리 삭제
+                      </button>
+                    </>
+                  )}
+                </div>
+
+                <div
+                  className="grid transition-[grid-template-rows] duration-300 ease-out"
+                  style={{ gridTemplateRows: collapsed ? "0fr" : "1fr" }}
                 >
-                  추가
-                </button>
+                  <div className="overflow-hidden">
+                    <QuestionListEditor
+                      items={items}
+                      busy={busy}
+                      onToggleActive={handleToggleActive}
+                      onUpdateText={handleUpdateQuestionText}
+                      onDelete={handleDeleteQuestion}
+                      onReorder={(from, to) => handleReorderQuestions(cat.id, from, to)}
+                    />
+
+                    <div className="flex gap-2">
+                      <input
+                        value={newQuestionByCategory[cat.id] ?? ""}
+                        onChange={(e) =>
+                          setNewQuestionByCategory((prev) => ({ ...prev, [cat.id]: e.target.value }))
+                        }
+                        onKeyDown={(e) => e.key === "Enter" && handleAddQuestion(cat.id)}
+                        placeholder="새 질문 입력"
+                        className="flex-1 min-w-0 border border-black/15 rounded-xl px-3.5 py-2 text-sm"
+                      />
+                      <button
+                        onClick={() => handleAddQuestion(cat.id)}
+                        disabled={busy || !(newQuestionByCategory[cat.id] ?? "").trim()}
+                        className="flex-none px-3.5 py-2 rounded-xl bg-white border border-black/15 text-sm font-bold disabled:opacity-40"
+                      >
+                        추가
+                      </button>
+                    </div>
+                  </div>
+                </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })}
+      </div>
 
       <ConfirmDialog
         open={!!deleteCategoryTarget}
