@@ -82,19 +82,10 @@ export default function RespondentEntryPage() {
   return (
     <section className="flex flex-col flex-1 px-[22px] py-[26px]">
       <BackButton fallbackHref="/" />
-      <div className="flex items-center gap-2 mb-5">
-        <svg viewBox="0 0 40 40" width={30} height={30}>
-          <rect x="2" y="2" width="36" height="36" rx="10" fill="#FBF4E4" stroke="#3E3226" strokeWidth={2.5} />
-          <text x="20" y="26" textAnchor="middle" fontFamily="var(--font-gaegu)" fontWeight={700} fontSize={16} fill="#3E3226">
-            난?
-          </text>
-        </svg>
-        <span className="font-display font-bold">내가 누구게?</span>
-      </div>
 
       <h2 className="font-display text-2xl mb-1.5">{questionnaire.creatorName}에 대해 알려줄 준비가 됐어?</h2>
       <p className="text-[13.5px] text-ink-soft mb-5 leading-relaxed">
-        네 답변이 도움이 될 수 있게 귀찮겠지만 정성스럽게 작성해주면 좋겠어!
+        네 답변이 도움이 될 수 있게<br/>귀찮겠지만 정성스럽게 작성해주면 좋겠어!
       </p>
 
       <div className="mb-4">

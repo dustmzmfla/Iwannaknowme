@@ -63,9 +63,9 @@ export default function SharePage() {
 
   return (
     <section className="flex flex-col flex-1 px-[22px] py-[26px]">
-      <h2 className="font-display text-2xl mb-1.5">짜잔, 완성!</h2>
+      <h2 className="font-display text-2xl mb-1.5">질문지 생성 완료!</h2>
       <p className="text-[13.5px] text-ink-soft mb-5 leading-relaxed">
-        이 링크 뿌리고 반응 기다려보자. 답변은 익명으로도, 이름 걸고도 받을 수 있어.
+        이 링크를 친구들에게 공유하고 반응을 기다려보자<br/>답변은 익명으로도, 실명이나 닉네임으로도 받을 수 있어
       </p>
 
       <div className="relative bg-paper-card border border-black/10 rounded-2xl p-[22px] mb-4 -rotate-1 overflow-hidden">
