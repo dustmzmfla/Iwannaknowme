@@ -38,12 +38,12 @@ export default function AnswerPage() {
     <section className="flex flex-col flex-1 px-[22px] py-[26px]">
       <BackButton fallbackHref={`/r/${params.id}`} />
       <div className="bg-paper-card2 border border-black/10 rounded-xl text-center text-[12.5px] font-medium text-ink-soft py-2.5 px-3 mb-4">
-        귀찮겠지만 정성스럽게 작성해줘!<br/>(최대 {ANSWER_MAX_LENGTH}자, 비워둬도 OK)
+        귀찮겠지만 정성스럽게 작성해줘!<br/>(최대 {ANSWER_MAX_LENGTH}자, 비워둬도 괜찮아)
       </div>
 
       {questionnaire.questions.map((q, i) => (
         <div key={i} className="mb-5 pb-5 border-b border-black/10 last:border-none">
-          <div className="text-lg font-bold mb-2.5 break-words text-accent">Q. {q}</div>
+          <div className="text-base font-bold mb-2.5 break-words text-accent">Q. {q}</div>
           <AutoGrowTextarea
             value={answers[i] ?? ""}
             maxLength={ANSWER_MAX_LENGTH}
