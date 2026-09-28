@@ -511,3 +511,40 @@ export function downloadBlob(blob: Blob, filename: string) {
   document.body.removeChild(a);
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
+
+// 모바일 사파리는 <a download>로 blob: URL을 열어도 download 속성을 무시하고
+// 그 탭에서 이미지 자체를 새 히스토리 항목으로 열어버리는 경우가 있습니다.
+// 그 상태에서 뒤로가기를 누르면, 이미 위 downloadBlob이 정리(revoke)한 blob
+// 리소스를 사파리가 다시 열려고 시도하다가 "Safari가 해당 페이지를 열 수
+// 없습니다 / WebKitBlobResource 오류 1" 화면이 뜹니다.
+// Web Share API(파일 공유)를 지원하는 환경(대부분의 모바일 브라우저)에서는
+// 페이지 이동 자체가 없는 네이티브 공유 시트를 우선 쓰고, 지원하지 않는
+// 환경(주로 데스크톱)에서만 기존 다운로드 방식으로 대체합니다.
+export async function shareOrDownloadBlob(
+  blob: Blob,
+  filename: string
+): Promise<"shared" | "downloaded"> {
+  try {
+    const file = new File([blob], filename, { type: blob.type || "image/png" });
+    const nav = typeof navigator !== "undefined" ? (navigator as Navigator & {
+      canShare?: (data?: { files?: File[] }) => boolean;
+      share?: (data: { files?: File[] }) => Promise<void>;
+    }) : undefined;
+
+    if (nav?.share && (!nav.canShare || nav.canShare({ files: [file] }))) {
+      try {
+        await nav.share({ files: [file] });
+        return "shared";
+      } catch (err) {
+        // 사용자가 공유 시트를 그냥 닫은 경우(AbortError)는 실패가 아니라 취소입니다.
+        if ((err as { name?: string })?.name === "AbortError") return "shared";
+        // 그 외 에러는 아래 다운로드 방식으로 폴백합니다.
+      }
+    }
+  } catch {
+    // File 생성 등에서 문제가 있어도 아래 다운로드 방식으로 폴백합니다.
+  }
+
+  downloadBlob(blob, filename);
+  return "downloaded";
+}

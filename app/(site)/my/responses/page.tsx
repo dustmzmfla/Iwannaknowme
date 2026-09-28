@@ -13,7 +13,7 @@ import {
   type MyQuestionnaireSummary,
 } from "@/lib/creatorFlow";
 import type { QuestionResponse } from "@/lib/types";
-import { generateShareCardPng, downloadBlob } from "@/lib/shareCard";
+import { generateShareCardPng, shareOrDownloadBlob } from "@/lib/shareCard";
 
 // 표 한 페이지에 보여줄 최대 행 개수입니다.
 const PAGE_SIZE = 10;
@@ -175,8 +175,8 @@ export default function MyResponsesPage() {
         qa,
         finalMessage: selectedResponse.finalMessage,
       });
-      downloadBlob(blob, `내가누구게_${selectedResponse.id}.png`);
-      showToast("이미지로 저장했어요.");
+      const result = await shareOrDownloadBlob(blob, `내가누구게_${selectedResponse.id}.png`);
+      if (result === "downloaded") showToast("이미지로 저장했어요.");
     } catch (err) {
       console.error("공유 이미지 생성 실패:", err);
       showToast("이미지를 만들지 못했어요. 잠시 후 다시 시도해줘.");
