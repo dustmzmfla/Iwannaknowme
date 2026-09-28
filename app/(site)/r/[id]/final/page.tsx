@@ -77,7 +77,7 @@ export default function RespondentFinalPage() {
       <BackButton fallbackHref={`/r/${params.id}/answer`} />
       <h2 className="font-display text-2xl mb-1.5">마지막 질문이야</h2>
       <p className="text-[13.5px] text-ink-soft mb-5 leading-relaxed">
-        이 두 개는 필수야. 건너뛸 수 없어!
+        이 두 개는 꼭 대답해줬으면 좋겠어!
       </p>
 
       <div className="mb-4">

@@ -92,9 +92,9 @@ export default function RespondentEntryPage() {
         <span className="font-display font-bold">내가 누구게?</span>
       </div>
 
-      <h2 className="font-display text-2xl mb-1.5">{questionnaire.creatorName}가 너를 저격했어</h2>
+      <h2 className="font-display text-2xl mb-1.5">{questionnaire.creatorName}에 대해 알려줄 준비가 됐어?</h2>
       <p className="text-[13.5px] text-ink-soft mb-5 leading-relaxed">
-        솔직하게 답해줘. 다 너 좋으라고 이러는 거야 (아마도).
+        네 답변이 도움이 될 수 있게 귀찮겠지만 정성스럽게 작성해주면 좋겠어!
       </p>
 
       <div className="mb-4">
@@ -106,7 +106,7 @@ export default function RespondentEntryPage() {
           value={nickname}
           maxLength={12}
           onChange={(e) => setNickname(e.target.value)}
-          placeholder="예) 민지 또는 비워두기"
+          placeholder=""
           className="w-full bg-white border border-black/15 rounded-xl px-3.5 py-3 focus:border-accent"
         />
       </div>

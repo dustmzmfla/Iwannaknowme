@@ -100,9 +100,9 @@ export default function IntroPage() {
             </span>
           </h1>
           <p className="text-[14px] text-[#5B4C40] leading-relaxed">
-            친구들에게 질문을 만들어 보내고,
+            나도 모르는 내 모습,
             <br />
-            몰랐던 내 모습을 만나보세요
+            네 알려줄래?
           </p>
         </div>
 

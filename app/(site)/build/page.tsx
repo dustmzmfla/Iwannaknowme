@@ -111,9 +111,9 @@ export default function BuildPage() {
   return (
     <section className="flex flex-col flex-1 px-[22px] py-[26px]">
       <BackButton fallbackHref="/" />
-      <h2 className="font-display text-2xl mb-1.5">{name}님, 궁금한 거 다 골라봐</h2>
+      <h2 className="font-display text-2xl mb-1.5">나에 대한 질문 선택</h2>
       <p className="text-[13.5px] text-ink-soft mb-5 leading-relaxed">
-        카테고리 뒤져서 궁금한 질문 3~10개 골라봐. &apos;가십&apos;도 있어 👀
+        원하는 질문을 선택해서 나만의 질문지를 만들어봐
       </p>
 
       <Card>

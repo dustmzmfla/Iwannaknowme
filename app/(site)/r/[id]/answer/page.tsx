@@ -38,7 +38,7 @@ export default function AnswerPage() {
     <section className="flex flex-col flex-1 px-[22px] py-[26px]">
       <BackButton fallbackHref={`/r/${params.id}`} />
       <div className="bg-paper-card2 border border-black/10 rounded-xl text-center text-[12.5px] font-medium text-ink-soft py-2.5 px-3 mb-4">
-        한 줄로 톡 쏘게! (최대 {ANSWER_MAX_LENGTH}자, 비워둬도 OK)
+        귀찮겠지만 정성스럽게 작성해줘!<br/>(최대 {ANSWER_MAX_LENGTH}자, 비워둬도 OK)
       </div>
 
       {questionnaire.questions.map((q, i) => (
@@ -48,7 +48,7 @@ export default function AnswerPage() {
             value={answers[i] ?? ""}
             maxLength={ANSWER_MAX_LENGTH}
             onChange={(e) => updateAnswer(i, e.target.value)}
-            placeholder="한 줄로 솔직하게"
+            placeholder=""
             className="w-full bg-white border border-black/15 rounded-xl px-3.5 py-3 focus:border-accent"
           />
           <span className="block text-right text-[11px] font-bold text-ink-soft mt-1">
