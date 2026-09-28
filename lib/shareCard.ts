@@ -236,6 +236,9 @@ interface Layout {
   windowHeight: number;
   headerHeight: number;
   rows: { row: QaRow; qY: number; aY: number }[];
+  // 각 질문/답변 쌍 사이의 구분선 y 좌표(질문지 창 기준 상대값)입니다.
+  // rows.length - 1개 만큼 생깁니다(마지막 쌍 뒤에는 안 그어요).
+  dividerYs: number[];
   finalBubble: { metrics: BubbleMetrics; y: number } | null;
   footerY: number;
 }
@@ -266,6 +269,7 @@ function buildLayout(
 
   let cursor = HEADER_H + MSG_PAD_TOP;
   const rows: { row: QaRow; qY: number; aY: number }[] = [];
+  const dividerYs: number[] = [];
 
   data.qa.forEach((qa, i) => {
     const question = measureBubble(mctx, `Q. ${qa.question}`, maxBubbleContentWidth, qFont);
@@ -277,7 +281,12 @@ function buildLayout(
     cursor += answer.height;
 
     rows.push({ row: { question, answer }, qY, aY });
-    cursor += i < data.qa.length - 1 ? ROW_GAP : 0;
+
+    if (i < data.qa.length - 1) {
+      // 다음 질문/답변 쌍과의 간격(ROW_GAP) 정중앙에 구분선을 긋습니다.
+      dividerYs.push(cursor + ROW_GAP / 2);
+      cursor += ROW_GAP;
+    }
   });
 
   let finalBubble: { metrics: BubbleMetrics; y: number } | null = null;
@@ -305,6 +314,7 @@ function buildLayout(
     windowHeight,
     headerHeight: HEADER_H,
     rows,
+    dividerYs,
     finalBubble,
     footerY: windowY + windowHeight + BOTTOM_MARGIN / 2,
   };
@@ -357,6 +367,18 @@ function drawChatHeader(
   ctx.textBaseline = "middle";
   const label = data.isAnonymous || !data.nickname ? "익명" : data.nickname;
   ctx.fillText(label, windowX + windowWidth / 2, windowY + headerHeight / 2);
+  ctx.restore();
+}
+
+// 질문/답변 쌍 사이의 옅은 구분선 - 대화창 좌우 여백만큼 안쪽으로 들여서 긋습니다.
+function drawDivider(ctx: CanvasRenderingContext2D, windowX: number, windowWidth: number, y: number) {
+  ctx.save();
+  ctx.strokeStyle = COLORS.border;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(windowX + BUBBLE_PAD_X, y);
+  ctx.lineTo(windowX + windowWidth - BUBBLE_PAD_X, y);
+  ctx.stroke();
   ctx.restore();
 }
 
@@ -423,11 +445,12 @@ export async function generateShareCardPng(data: ShareCardData): Promise<Blob> {
   const qFont = `800 ${BUBBLE_FONT_SIZE}px ${fonts().noto}, sans-serif`;
   const aFont = `800 ${BUBBLE_FONT_SIZE}px ${fonts().noto}, sans-serif`;
 
+  // 질문은 오른쪽, 답변은 왼쪽 말풍선으로 나오게 합니다.
   for (const { row, qY, aY } of layout.rows) {
     drawBubble(
       ctx,
       row.question,
-      "left",
+      "right",
       layout.windowX,
       layout.windowWidth,
       layout.windowY + qY,
@@ -438,7 +461,7 @@ export async function generateShareCardPng(data: ShareCardData): Promise<Blob> {
     drawBubble(
       ctx,
       row.answer,
-      "right",
+      "left",
       layout.windowX,
       layout.windowWidth,
       layout.windowY + aY,
@@ -448,11 +471,17 @@ export async function generateShareCardPng(data: ShareCardData): Promise<Blob> {
     );
   }
 
+  for (const dividerY of layout.dividerYs) {
+    drawDivider(ctx, layout.windowX, layout.windowWidth, layout.windowY + dividerY);
+  }
+
   if (layout.finalBubble) {
+    // 마지막 한마디도 답변과 같은 쪽(왼쪽)에 그려서 "이 사람이 한 말"이라는
+    // 의미가 답변과 한눈에 이어져 보이게 합니다.
     drawBubble(
       ctx,
       layout.finalBubble.metrics,
-      "right",
+      "left",
       layout.windowX,
       layout.windowWidth,
       layout.windowY + layout.finalBubble.y,

@@ -110,6 +110,7 @@ export default function AdminUserDetailPage() {
   const [responsesPage, setResponsesPage] = useState(1);
   const [selectedResponse, setSelectedResponse] = useState<QuestionResponse | null>(null);
   const [restoringQuestionnaireId, setRestoringQuestionnaireId] = useState<string | null>(null);
+  const [restoreQuestionnaireTarget, setRestoreQuestionnaireTarget] = useState<Questionnaire | null>(null);
   const [purgeQuestionnaireTarget, setPurgeQuestionnaireTarget] = useState<Questionnaire | null>(null);
   const [purgingQuestionnaire, setPurgingQuestionnaire] = useState(false);
   const [confirmDeleteUser, setConfirmDeleteUser] = useState(false);
@@ -380,13 +381,19 @@ export default function AdminUserDetailPage() {
                 행을 누르면 그 질문지를 고르고, 아래 "받은 답변"에 그 질문지의
                 답변자들이 뜹니다. */}
             <div className="border border-black/10 rounded-xl overflow-x-auto">
+              {/* 모바일에서 배지/버튼이 많은 "상태" 칸 때문에 표가 좁아지면 헤더
+                  글자가 두 줄로 꺾여 보였습니다 - table-layout: auto가 너비를
+                  일부러 100%에 맞추려다 생기는 문제라, 헤더에도 데이터 칸과
+                  똑같이 whitespace-nowrap을 줘서 표 자체가 필요한 만큼 넓어지고
+                  (모자라면 바깥 div의 overflow-x-auto로 가로 스크롤) 안에서
+                  글자가 꺾이지 않게 했습니다. */}
               <table className="w-full text-sm">
                 <thead>
                   <tr className="bg-black/[0.03] text-left text-xs text-black/50">
-                    <th className="px-4 py-2.5 font-medium">생성일자</th>
-                    <th className="px-4 py-2.5 font-medium">질문 수</th>
-                    <th className="px-4 py-2.5 font-medium">답변 수</th>
-                    <th className="px-4 py-2.5 font-medium">상태</th>
+                    <th className="px-4 py-2.5 font-medium whitespace-nowrap">생성일자</th>
+                    <th className="px-4 py-2.5 font-medium whitespace-nowrap">질문 수</th>
+                    <th className="px-4 py-2.5 font-medium whitespace-nowrap">답변 수</th>
+                    <th className="px-4 py-2.5 font-medium whitespace-nowrap">상태</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-black/5">
@@ -431,7 +438,7 @@ export default function AdminUserDetailPage() {
                                 type="button"
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  handleRestoreQuestionnaire(q.id);
+                                  setRestoreQuestionnaireTarget(q);
                                 }}
                                 disabled={restoringQuestionnaireId === q.id}
                                 className="text-xs font-bold px-2.5 py-1 rounded-lg bg-ink text-paper-card disabled:opacity-50 whitespace-nowrap"
@@ -661,6 +668,18 @@ export default function AdminUserDetailPage() {
           } finally {
             setAdminBusy(false);
           }
+        }}
+      />
+
+      <ConfirmDialog
+        open={!!restoreQuestionnaireTarget}
+        title="이 질문지를 복구할까요?"
+        description="질문자가 삭제한 질문지를 다시 정상 노출 상태로 되돌립니다."
+        confirmLabel="복구"
+        onCancel={() => setRestoreQuestionnaireTarget(null)}
+        onConfirm={() => {
+          if (restoreQuestionnaireTarget) handleRestoreQuestionnaire(restoreQuestionnaireTarget.id);
+          setRestoreQuestionnaireTarget(null);
         }}
       />
 

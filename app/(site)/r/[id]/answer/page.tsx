@@ -43,7 +43,7 @@ export default function AnswerPage() {
 
       {questionnaire.questions.map((q, i) => (
         <div key={i} className="mb-5 pb-5 border-b border-black/10 last:border-none">
-          <div className="font-display text-lg mb-2.5 break-words">{q}</div>
+          <div className="text-lg font-bold mb-2.5 break-words text-accent">Q. {q}</div>
           <AutoGrowTextarea
             value={answers[i] ?? ""}
             maxLength={ANSWER_MAX_LENGTH}
