@@ -1,7 +1,7 @@
 import type { QuestionPool, Category } from "./types";
 
 export const MIN_QUESTIONS = 3;
-export const MAX_QUESTIONS = 10;
+export const MAX_QUESTIONS = 15;
 export const ANSWER_MAX_LENGTH = 30;
 
 export const QUESTION_POOL: QuestionPool = {
