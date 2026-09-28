@@ -1,4 +1,11 @@
+"use client";
+
+import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/Button";
+
 export default function DonePage() {
+  const router = useRouter();
+
   return (
     <section className="flex flex-col flex-1 px-[22px] py-[26px] items-center justify-center text-center gap-4">
       <svg viewBox="0 0 200 160" width={160} height={128}>
@@ -14,6 +21,9 @@ export default function DonePage() {
         <br />
         솔직하게 답해줘서 고마워요.
       </p>
+      <div className="w-full max-w-[260px] mt-2">
+        <Button onClick={() => router.push("/")}>나도 질문 만들기</Button>
+      </div>
     </section>
   );
 }
