@@ -39,7 +39,7 @@ export type QuestionnaireVisibility =
 export interface Questionnaire {
   id: string;
   ownerId: string; // AppUser.id
-  questions: string[]; // 발행 시점의 질문 스냅샷 (순서 포함, 3~10개).
+  questions: string[]; // 발행 시점의 질문 스냅샷 (순서 포함, 3~15개).
   // ⚠️ 질문 수정 기능은 의도적으로 제공하지 않습니다 — 이미 답변이 달린 뒤 질문을 바꾸면
   // 답변과 질문이 서로 안 맞게 꼬이기 때문입니다. 새 질문지가 필요하면 새로 만들어야 합니다.
   relationRequired: true; // 항상 true, 스키마 문서화 목적
