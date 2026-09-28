@@ -70,6 +70,9 @@ export default function RespondentEntryPage() {
           이 링크로는 이미 답변을 보냈어. 같은 사람이 여러 번 답변하지 못하도록
           하나의 링크당 한 번만 참여할 수 있어.
         </p>
+        <div className="mt-auto pt-5">
+          <Button onClick={() => router.push("/")}>나도 질문 만들기</Button>
+        </div>
       </section>
     );
   }
