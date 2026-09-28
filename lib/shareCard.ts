@@ -251,7 +251,7 @@ const WORDMARK_GAP = 36;
 const HEADER_H = 76;
 const MSG_PAD_TOP = 30;
 const MSG_PAD_BOTTOM = 30;
-const BUBBLE_GAP = 14; // 질문 → 답변 사이
+const BUBBLE_GAP = 6; // 질문 → 답변 사이
 const ROW_GAP = 26; // 한 질문/답변 쌍 → 다음 쌍
 const BOTTOM_MARGIN = 74;
 
