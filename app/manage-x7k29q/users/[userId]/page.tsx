@@ -151,6 +151,16 @@ export default function AdminUserDetailPage() {
     refresh();
   }, [refresh]);
 
+  // 답변 팝업이 열려있는 동안은 뒤쪽 페이지가 스크롤되지 않게 막습니다.
+  useEffect(() => {
+    if (!selectedResponse) return;
+    const original = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = original;
+    };
+  }, [selectedResponse]);
+
   // 팝업으로 띄운 답변을 숨기거나 복구하면 목록이 갱신될 때 팝업 내용도 같이
   // 최신화됩니다 (영구삭제는 각 처리 함수에서 팝업을 바로 닫아요).
   useEffect(() => {
@@ -409,11 +419,11 @@ export default function AdminUserDetailPage() {
                             {formatCreatedAt(q.createdAt).time}
                           </span>
                         </td>
-                        <td className="px-4 py-2.5 text-black/60">{q.questions.length}개</td>
-                        <td className="px-4 py-2.5 text-black/60">{responseCount}개</td>
-                        <td className="px-4 py-2.5">
+                        <td className="px-4 py-2.5 text-black/60 whitespace-nowrap">{q.questions.length}개</td>
+                        <td className="px-4 py-2.5 text-black/60 whitespace-nowrap">{responseCount}개</td>
+                        <td className="px-4 py-2.5 whitespace-nowrap">
                           {isDeleted ? (
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 whitespace-nowrap">
                               <span className="text-xs font-bold text-ink-soft bg-black/10 px-2 py-0.5 rounded-full whitespace-nowrap">
                                 삭제됨 (질문자가 삭제)
                               </span>
@@ -424,7 +434,7 @@ export default function AdminUserDetailPage() {
                                   handleRestoreQuestionnaire(q.id);
                                 }}
                                 disabled={restoringQuestionnaireId === q.id}
-                                className="text-xs font-bold px-2.5 py-1 rounded-lg bg-ink text-paper-card disabled:opacity-50"
+                                className="text-xs font-bold px-2.5 py-1 rounded-lg bg-ink text-paper-card disabled:opacity-50 whitespace-nowrap"
                               >
                                 {restoringQuestionnaireId === q.id ? "복구 중..." : "복구"}
                               </button>

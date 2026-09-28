@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { BackButton } from "@/components/ui/BackButton";
 import { Button } from "@/components/ui/Button";
+import { AutoGrowTextarea } from "@/components/ui/AutoGrowTextarea";
 import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
 import { readJSON } from "@/lib/storage";
 import { submitResponse, AlreadyRespondedError } from "@/lib/creatorFlow";
@@ -101,12 +102,12 @@ export default function RespondentFinalPage() {
         <label className="block text-[13px] text-ink-soft mb-2">
           마지막으로 나에게 하고 싶은 말
         </label>
-        <textarea
+        <AutoGrowTextarea
           value={finalMessage}
           maxLength={200}
           onChange={(e) => setFinalMessage(e.target.value)}
           placeholder="진심을 담아 써줘"
-          className="w-full bg-white border border-black/15 rounded-xl px-3.5 py-3 resize-none min-h-[90px] focus:border-accent"
+          className="w-full bg-white border border-black/15 rounded-xl px-3.5 py-3 min-h-[90px] focus:border-accent"
         />
       </div>
 

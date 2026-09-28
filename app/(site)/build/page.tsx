@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { BackButton } from "@/components/ui/BackButton";
+import { AutoGrowTextarea } from "@/components/ui/AutoGrowTextarea";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { SelectedQuestionList } from "@/components/builder/SelectedQuestionList";
@@ -28,12 +29,17 @@ export default function BuildPage() {
   const [error, setError] = useState("");
   const [customOpen, setCustomOpen] = useState(false);
   const [customText, setCustomText] = useState("");
+  // 관리자 페이지에서 등록한 실제 질문이 뜨기 전에, 정적 fallback(JSON) 데이터가
+  // 잠깐 먼저 보였다가 바뀌는 게 어색해서 - 로딩이 끝나기 전엔 아예 목록을
+  // 그리지 않고 로딩 화면만 보여줍니다 (아래 authLoading과 같은 방식).
+  const [poolLoading, setPoolLoading] = useState(true);
 
   useEffect(() => {
     loadQuestionPool().then(({ categories: c, pool: p }) => {
       setCategories(c);
       setPool(p);
       setCategory((prev) => (c.includes(prev) ? prev : c[0]));
+      setPoolLoading(false);
     });
   }, []);
 
@@ -94,7 +100,7 @@ export default function BuildPage() {
 
   // 로그인 확인이 끝나기 전이거나 로그인이 안 되어 있으면(리다이렉트되는 중)
   // 질문 선택 화면을 잠깐이라도 보여주지 않습니다.
-  if (authLoading || !profile) {
+  if (authLoading || !profile || poolLoading) {
     return (
       <section className="flex flex-col flex-1 px-[22px] py-[26px] items-center justify-center">
         <p className="text-ink-soft text-sm">불러오는 중...</p>
@@ -139,7 +145,7 @@ export default function BuildPage() {
                 type="button"
                 disabled={disabled}
                 onClick={() => toggle(q)}
-                className={`relative flex items-center min-h-[54px] text-left text-[12.6px] leading-snug rounded-xl px-3 py-2.5 border transition disabled:opacity-40 ${
+                className={`relative flex items-center min-h-[54px] text-left text-[12.6px] leading-snug break-words rounded-xl px-3 py-2.5 border transition disabled:opacity-40 ${
                   picked
                     ? "bg-ink text-paper-card border-ink font-bold"
                     : "bg-paper-card2 border-black/10 hover:border-black/30"
@@ -158,11 +164,16 @@ export default function BuildPage() {
       <Card>
         {customOpen ? (
           <div className="flex gap-2">
-            <input
+            <AutoGrowTextarea
               autoFocus
               value={customText}
               onChange={(e) => setCustomText(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleAddCustom()}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  handleAddCustom();
+                }
+              }}
               placeholder="궁금한 질문을 직접 적어줘"
               maxLength={80}
               className="flex-1 min-w-0 bg-white border border-black/15 rounded-xl px-3.5 py-2.5 text-sm focus:border-accent"

@@ -23,8 +23,8 @@ export function ResponseCard({
 
   return (
     <div
-      className={`rounded-2xl border p-4 mb-3 ${
-        isHidden ? "bg-black/[0.03] border-dashed border-black/20" : "bg-white border-black/10"
+      className={`rounded-2xl border p-4 mb-3 bg-white ${
+        isHidden ? "border-dashed border-black/20" : "border-black/10"
       }`}
     >
       <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
@@ -46,14 +46,14 @@ export function ResponseCard({
         {questions.map((q, i) =>
           response.answers[i] ? (
             <div key={i}>
-              <div className="text-xs text-ink-soft">{q}</div>
-              <div className="text-sm">{response.answers[i]}</div>
+              <div className="text-xs text-ink-soft break-words">{q}</div>
+              <div className="text-sm break-words">{response.answers[i]}</div>
             </div>
           ) : null
         )}
       </div>
 
-      <div className="bg-paper-card2 rounded-xl px-3 py-2 text-sm mb-3">
+      <div className="bg-paper-card2 rounded-xl px-3 py-2 text-sm mb-3 break-words">
         💌 {response.finalMessage}
       </div>
 

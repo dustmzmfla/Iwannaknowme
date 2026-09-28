@@ -57,7 +57,7 @@ export function SelectedQuestionList({
           >
             ⠿
           </span>
-          <span className="flex-1 text-sm font-bold">{text}</span>
+          <span className="flex-1 min-w-0 text-sm font-bold break-words">{text}</span>
           <button
             aria-label="삭제"
             onClick={() => onRemove(text)}

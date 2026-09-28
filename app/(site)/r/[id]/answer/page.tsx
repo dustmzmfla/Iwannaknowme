@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { BackButton } from "@/components/ui/BackButton";
 import { Button } from "@/components/ui/Button";
+import { AutoGrowTextarea } from "@/components/ui/AutoGrowTextarea";
 import { getQuestionnaire, type PublishedQuestionnaire } from "@/lib/creatorFlow";
 import { readJSON, writeJSON } from "@/lib/storage";
 import { ANSWER_MAX_LENGTH } from "@/lib/questionPool";
@@ -42,9 +43,8 @@ export default function AnswerPage() {
 
       {questionnaire.questions.map((q, i) => (
         <div key={i} className="mb-5 pb-5 border-b border-black/10 last:border-none">
-          <div className="font-display text-lg mb-2.5">{q}</div>
-          <input
-            type="text"
+          <div className="font-display text-lg mb-2.5 break-words">{q}</div>
+          <AutoGrowTextarea
             value={answers[i] ?? ""}
             maxLength={ANSWER_MAX_LENGTH}
             onChange={(e) => updateAnswer(i, e.target.value)}
