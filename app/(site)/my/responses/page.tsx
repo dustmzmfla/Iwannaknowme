@@ -270,20 +270,18 @@ export default function MyResponsesPage() {
           )}
 
           {questionnaires.length > 0 && (
-            <div className="border border-black/10 bg-paper-card">
-              <table className="w-full table-fixed text-center border-collapse">
-                <colgroup>
-                  <col style={{ width: "26%" }} />
-                  <col style={{ width: "14%" }} />
-                  <col style={{ width: "30%" }} />
-                  <col style={{ width: "30%" }} />
-                </colgroup>
+            <div className="border border-black/10 bg-paper-card overflow-x-auto">
+              {/* 열이 4개(만든날짜/답변/답변보기/공유하기)라 좁은 화면에서 table-fixed로
+                  강제로 욱여넣으면 버튼 글자가 깨져 보였습니다. table-auto + 모든 셀
+                  whitespace-nowrap 조합으로 내용에 맞게 자연스럽게 넓어지게 하고,
+                  화면보다 넓어지면 가로 스크롤로 보이게 했습니다. */}
+              <table className="w-full min-w-[420px] table-auto text-center border-collapse">
                 <thead>
                   <tr className="border-b border-black/10">
-                    <th className="px-2 py-2 text-[11px] font-bold text-ink-soft">만든날짜</th>
-                    <th className="px-2 py-2 text-[11px] font-bold text-ink-soft">답변</th>
-                    <th className="px-2 py-2 text-[11px] font-bold text-ink-soft">답변보기</th>
-                    <th className="px-2 py-2 text-[11px] font-bold text-ink-soft">공유하기</th>
+                    <th className="px-2 py-2 text-[11px] font-bold text-ink-soft whitespace-nowrap">만든날짜</th>
+                    <th className="px-2 py-2 text-[11px] font-bold text-ink-soft whitespace-nowrap">답변</th>
+                    <th className="px-2 py-2 text-[11px] font-bold text-ink-soft whitespace-nowrap">답변보기</th>
+                    <th className="px-2 py-2 text-[11px] font-bold text-ink-soft whitespace-nowrap">공유하기</th>
                   </tr>
                 </thead>
                 <tbody>
