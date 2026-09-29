@@ -3,3 +3,6 @@ node_modules
 out
 .env*.local
 .DS_Store
+
+# tsc --incremental이 매번 바꿔써서 커밋할 때마다 변경사항으로 잡히던 파일
+*.tsbuildinfo
