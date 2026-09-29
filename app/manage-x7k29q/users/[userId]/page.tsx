@@ -494,14 +494,17 @@ export default function AdminUserDetailPage() {
               <>
                 {/* 답변자 행을 누르면 팝업으로 이 질문지의 하위 질문 전체 + 그 사람이
                     적은 답변을 모두 확인할 수 있어요 (ResponseCard 재사용). */}
+                {/* 이름이 길거나 화면이 좁으면 셀이 눌려 깨져 보였습니다. 모든 셀에
+                    whitespace-nowrap을 주고 테이블에 최소 너비를 줘서, 화면보다
+                    넓어지면 (위 wrapper의 overflow-x-auto로) 가로 스크롤되게 했습니다. */}
                 <div className="border border-black/10 rounded-xl overflow-x-auto">
-                  <table className="w-full text-sm">
+                  <table className="w-full min-w-[480px] text-sm">
                     <thead>
                       <tr className="bg-black/[0.03] text-left text-xs text-black/50">
-                        <th className="px-4 py-2.5 font-medium">이름</th>
-                        <th className="px-4 py-2.5 font-medium">친밀도</th>
-                        <th className="px-4 py-2.5 font-medium">제출일</th>
-                        <th className="px-4 py-2.5 font-medium">상태</th>
+                        <th className="px-4 py-2.5 font-medium whitespace-nowrap">이름</th>
+                        <th className="px-4 py-2.5 font-medium whitespace-nowrap">친밀도</th>
+                        <th className="px-4 py-2.5 font-medium whitespace-nowrap">제출일</th>
+                        <th className="px-4 py-2.5 font-medium whitespace-nowrap">상태</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-black/5">
@@ -519,14 +522,14 @@ export default function AdminUserDetailPage() {
                           }}
                           className="cursor-pointer hover:bg-black/[0.015]"
                         >
-                          <td className="px-4 py-2.5 font-bold">
+                          <td className="px-4 py-2.5 font-bold whitespace-nowrap">
                             {r.isAnonymous ? "익명" : r.nickname}
                           </td>
-                          <td className="px-4 py-2.5 text-black/60">{r.relationCloseness}</td>
-                          <td className="px-4 py-2.5 text-black/60">
+                          <td className="px-4 py-2.5 text-black/60 whitespace-nowrap">{r.relationCloseness}</td>
+                          <td className="px-4 py-2.5 text-black/60 whitespace-nowrap">
                             {new Date(r.createdAt).toLocaleDateString("ko-KR")}
                           </td>
-                          <td className="px-4 py-2.5">
+                          <td className="px-4 py-2.5 whitespace-nowrap">
                             {r.visibility === "hidden_by_user" ? (
                               <span className="text-xs font-bold text-ink-soft bg-black/10 px-2 py-0.5 rounded-full">
                                 숨김
