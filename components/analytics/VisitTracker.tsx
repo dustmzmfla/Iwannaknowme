@@ -11,7 +11,11 @@ import { createClient } from "@/lib/supabase/client";
  */
 export function VisitTracker() {
   useEffect(() => {
-    const today = new Date().toISOString().slice(0, 10);
+    // ⚠️(2026-09 버그 수정): toISOString()은 UTC 기준이라 한국 자정이 지나도
+    // 최대 9시간 동안 "오늘" 키가 안 바뀌어서, 이 시간대에는 새로 방문해도
+    // record_visit이 다시 호출되지 않았습니다(서버 집계는 이미 Asia/Seoul 기준으로
+    // 고쳤으니, 클라이언트도 같은 기준으로 맞춰야 안 어긋납니다).
+    const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Seoul" }).format(new Date());
     const key = `iwkm_visited_${today}`;
     try {
       if (localStorage.getItem(key)) return;

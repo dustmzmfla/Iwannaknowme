@@ -587,7 +587,7 @@ export default function AdminUserDetailPage() {
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 py-10 overflow-y-auto"
           onClick={() => setSelectedResponse(null)}
         >
-          <div className="relative w-full max-w-lg" onClick={(e) => e.stopPropagation()}>
+          <div className="relative w-full max-w-lg max-h-[90vh]" onClick={(e) => e.stopPropagation()}>
             <button
               onClick={() => setSelectedResponse(null)}
               aria-label="닫기"
@@ -598,23 +598,27 @@ export default function AdminUserDetailPage() {
                 <line x1="12.5" y1="1.5" x2="1.5" y2="12.5" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
               </svg>
             </button>
-            <ResponseCard
-              response={selectedResponse}
-              questions={selectedQuestionnaire.questions}
-              onHide={async () => {
-                await hideResponseAsAdmin(selectedResponse.id);
-                await refresh();
-              }}
-              onRestore={async () => {
-                await restoreResponse(selectedResponse.id);
-                await refresh();
-              }}
-              onPurge={async () => {
-                await purgeResponse(selectedResponse.id);
-                setSelectedResponse(null);
-                await refresh();
-              }}
-            />
+            {/* 질문이 많은 질문지(최대 15개)는 카드가 화면보다 길어질 수 있어서,
+                팝업 자체는 최대 90vh로 제한하고 내부만 스크롤되게 합니다. */}
+            <div className="max-h-[90vh] overflow-y-auto rounded-2xl">
+              <ResponseCard
+                response={selectedResponse}
+                questions={selectedQuestionnaire.questions}
+                onHide={async () => {
+                  await hideResponseAsAdmin(selectedResponse.id);
+                  await refresh();
+                }}
+                onRestore={async () => {
+                  await restoreResponse(selectedResponse.id);
+                  await refresh();
+                }}
+                onPurge={async () => {
+                  await purgeResponse(selectedResponse.id);
+                  setSelectedResponse(null);
+                  await refresh();
+                }}
+              />
+            </div>
           </div>
         </div>
       )}

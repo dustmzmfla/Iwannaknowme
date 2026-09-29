@@ -691,15 +691,21 @@ $$;
 -- 로그인 유저는 auth.uid() 기준으로 하루 1번만 카운트되도록 daily_visit_log로
 -- 중복을 막습니다 (다른 브라우저/기기로 재접속해도 재카운트되지 않음). 비로그인
 -- 방문자는 안정적인 식별자가 없어서 기존처럼 호출될 때마다 카운트됩니다.
+--
+-- ⚠️(2026-09 버그 수정): current_date는 DB 서버의 타임존(Supabase 기본값은 UTC) 기준이라서,
+-- 한국 자정(KST, UTC+9)이 지나도 UTC 기준으로는 아직 전날이라 그 사이(최대 9시간) 방문이
+-- 계속 "어제" 날짜로 잡혀 "오늘 방문자" 숫자가 한국 자정에 리셋되지 않는 것처럼 보였습니다.
+-- 한국 서비스이므로 날짜 경계를 항상 Asia/Seoul 기준으로 명시적으로 계산합니다.
 create or replace function public.record_visit()
 returns void language plpgsql security definer set search_path = public as $$
 declare
   v_uid uuid := auth.uid();
   v_rows int;
+  v_day date := (now() at time zone 'Asia/Seoul')::date;
 begin
   if v_uid is not null then
     insert into public.daily_visit_log (day, user_id)
-    values (current_date, v_uid)
+    values (v_day, v_uid)
     on conflict (day, user_id) do nothing;
     get diagnostics v_rows = row_count;
     if v_rows = 0 then
@@ -709,7 +715,7 @@ begin
   end if;
 
   insert into public.daily_visits (day, count)
-  values (current_date, 1)
+  values (v_day, 1)
   on conflict (day) do update set count = public.daily_visits.count + 1;
 end;
 $$;
